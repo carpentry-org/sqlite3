@@ -1,8 +1,6 @@
 (load "sqlite3.carp")
 (use SQLite3)
 
-(add-cflag "-fsanitize=address")
-
 (defn main []
   (let-do [db (Result.unsafe-from-success (SQLite3.open "test.db"))]
     ; we can create a table
