@@ -22,8 +22,9 @@ databases.
 ; ignore that
 (let-do [db (Result.unsafe-from-success (SQLite3.open \"db\"))]
   ; we can prepare statements
-  (println* &(SQLite3.query &db \"INSERT INTO mytable VALUES (?1, ?2);\"
-                            &[(to-sqlite3 @\"hello\") (to-sqlite3 100)]))
+  (ignore
+    (SQLite3.query &db \"INSERT INTO mytable VALUES (?1, ?2);\"
+                   &[(to-sqlite3 @\"hello\") (to-sqlite3 100)]))
   ; and query things
   (println* &(SQLite3.query &db \"SELECT * from mytable;\" &[]))
   (SQLite3.close db)
