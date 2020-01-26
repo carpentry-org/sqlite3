@@ -6,7 +6,7 @@ everything, but it tries to be useful.
 ## Installation
 
 ```clojure
-(load "https://veitheller.de/git/carpentry/sqlite3@0.0.1")
+(load "https://veitheller.de/git/carpentry/sqlite3@0.0.2")
 ```
 
 ## Usage

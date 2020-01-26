@@ -176,14 +176,14 @@ const char* SQLite3_exec_internal(sqlite3_stmt* s, SQLiteRows* rows) {
             break;
           case SQLITE_TEXT: {
             len = sqlite3_column_bytes(s, i);
-            c->s = CARP_MALLOC(len);
+            c->s = CARP_MALLOC(len+1);
             memcpy(c->s, sqlite3_column_text(s, i), len);
             c->s[len] = '\0';
             break;
           }
           case SQLITE_BLOB: {
             len = sqlite3_column_bytes(s, i);
-            c->s = CARP_MALLOC(len);
+            c->s = CARP_MALLOC(len+1);
             memcpy(c->s, sqlite3_column_blob(s, i), len);
             c->s[len] = '\0';
             break;
