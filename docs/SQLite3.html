@@ -1,0 +1,166 @@
+<!DOCTYPE HTML>
+
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+        <link rel="stylesheet" href="style.css">
+    </head>
+    <body>
+        <div class="content">
+            <div class="logo">
+                <a href="http://github.com/carp-lang/Carp">
+                    <img src="logo.png">
+                </a>
+                <div class="title">
+                    sqlite3
+                </div>
+                <div class="index">
+                    <ul>
+                        <li>
+                            <a href="SQLite3.html">
+                                SQLite3
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <h1>
+                SQLite3
+            </h1>
+            <div class="module-description">
+                <p>is a simple high-level wrapper around SQLite3. It doesn’t intend
+to wrap everything, but it tries to be useful.</p>
+<h2>Installation</h2>
+<pre><code class="language-clojure">(load &quot;https://veitheller.de/git/carpentry/sqlite3@0.0.1&quot;)
+</code></pre>
+<h2>Usage</h2>
+<p>The module <code>SQLite3</code> provides facilities for opening, closing, and querying
+databases.</p>
+<pre><code class="language-clojure">(load &quot;https://veitheller.de/git/carpentry/sqlite3@0.0.1&quot;)
+
+; opening DBs can fail, for the purposes of this example we
+; ignore that
+(let-do [db (Result.unsafe-from-success (SQLite3.open &quot;db&quot;))]
+  ; we can prepare statements
+  (println* &amp;(SQLite3.query &amp;db &quot;INSERT INTO mytable VALUES (?1, ?2);&quot;
+                            &amp;[(to-sqlite3 @&quot;hello&quot;) (to-sqlite3 100)]))
+  ; and query things
+  (println* &amp;(SQLite3.query &amp;db &quot;SELECT * from mytable;&quot; &amp;[]))
+  (SQLite3.close db)
+</code></pre>
+<p>Because <code>open</code> and <code>query</code> return <code>Result</code> types, we could also use
+combinators!</p>
+
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#SQLite">
+                    <h3 id="SQLite">
+                        SQLite
+                    </h3>
+                </a>
+                <div class="description">
+                    doc-stub
+                </div>
+                <p class="sig">
+                    a
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>is the opaque database type. You’ll need one of those to query
+anything.</p>
+<p>It can be obtained by using <a href="#open">open</a>.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#Type">
+                    <h3 id="Type">
+                        Type
+                    </h3>
+                </a>
+                <div class="description">
+                    module
+                </div>
+                <p class="sig">
+                    Module
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>represent all the SQLite types we can represent.</p>
+<p>The constructors are <code>Null</code>, <code>Integer</code>, <code>Floating</code>, <code>Text</code>, and <code>Blob</code>. Most
+primitive Carp types can be casted to appropriate SQLite types by using the
+<code>to-sqlite3</code> interface.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#close">
+                    <h3 id="close">
+                        close
+                    </h3>
+                </a>
+                <div class="description">
+                    external
+                </div>
+                <p class="sig">
+                    (λ [SQLite] ())
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>closes a database.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#open">
+                    <h3 id="open">
+                        open
+                    </h3>
+                </a>
+                <div class="description">
+                    defn
+                </div>
+                <p class="sig">
+                    (λ [&amp;String] (Result SQLite String))
+                </p>
+                <pre class="args">
+                    (open s)
+                </pre>
+                <p class="doc">
+                    <p>opens a database with the filename <code>s</code>.</p>
+<p>If it fails, we return an error message using <code>Result.Error</code>.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#query">
+                    <h3 id="query">
+                        query
+                    </h3>
+                </a>
+                <div class="description">
+                    defn
+                </div>
+                <p class="sig">
+                    (λ [(Ref SQLite), &amp;String, (Ref (Array Type))] (Result (Array (Array Type)) String))
+                </p>
+                <pre class="args">
+                    (query db s p)
+                </pre>
+                <p class="doc">
+                    <p>queries the database <code>db</code> using the query <code>s</code> and the parameters
+<code>p</code>.</p>
+<p>If it fails, we return an error message using <code>Result.Error</code>.</p>
+
+                </p>
+            </div>
+        </div>
+    </body>
+</html>

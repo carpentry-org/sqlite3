@@ -1,0 +1,194 @@
+(relative-include "sqlite3_helper.h")
+(add-cflag "-lsqlite3")
+
+(doc SQLite3 "is a simple high-level wrapper around SQLite3. It doesn’t intend
+to wrap everything, but it tries to be useful.
+
+## Installation
+
+```clojure
+(load \"https://veitheller.de/git/carpentry/sqlite3@0.0.1\")
+```
+
+## Usage
+
+The module `SQLite3` provides facilities for opening, closing, and querying
+databases.
+
+```clojure
+(load \"https://veitheller.de/git/carpentry/sqlite3@0.0.1\")
+
+; opening DBs can fail, for the purposes of this example we
+; ignore that
+(let-do [db (Result.unsafe-from-success (SQLite3.open \"db\"))]
+  ; we can prepare statements
+  (println* &(SQLite3.query &db \"INSERT INTO mytable VALUES (?1, ?2);\"
+                            &[(to-sqlite3 @\"hello\") (to-sqlite3 100)]))
+  ; and query things
+  (println* &(SQLite3.query &db \"SELECT * from mytable;\" &[]))
+  (SQLite3.close db)
+```
+
+Because `open` and `query` return `Result` types, we could also use
+combinators!")
+(defmodule SQLite3
+  (private sql_ok)
+  (hidden sql_ok)
+  (register sql_ok Int "SQLITE_OK")
+  (private sql_int)
+  (hidden sql_int)
+  (register sql_int Int "SQLITE_INTEGER")
+  (private sql_double)
+  (hidden sql_double)
+  (register sql_double Int "SQLITE_FLOAT")
+  (private sql_text)
+  (hidden sql_text)
+  (register sql_text Int "SQLITE_TEXT")
+  (private sql_blob)
+  (hidden sql_blob)
+  (register sql_blob Int "SQLITE_BLOB")
+
+  (doc SQLite "is the opaque database type. You’ll need one of those to query
+anything.
+
+It can be obtained by using [open](#open).")
+  (register-type SQLite)
+
+  (doc Type "represent all the SQLite types we can represent.
+
+The constructors are `Null`, `Integer`, `Floating`, `Text`, and `Blob`. Most
+primitive Carp types can be casted to appropriate SQLite types by using the
+`to-sqlite3` interface.")
+  (deftype Type
+    (Null [])
+    (Integer [Int])
+    (Floating [Double])
+    (Text [String])
+    (Blob [String])
+  )
+
+  (private SQLiteColumn)
+  (hidden SQLiteColumn)
+  (register-type SQLiteColumn)
+
+  (defmodule Type
+    (defmodule SQLiteColumn
+      (register nil (Fn [] SQLiteColumn) "SQLiteColumn_nil")
+      (register int (Fn [Int] SQLiteColumn) "SQLiteColumn_int")
+      (register float (Fn [Double] SQLiteColumn) "SQLiteColumn_float")
+      (register text (Fn [String] SQLiteColumn) "SQLiteColumn_text")
+      (register blob (Fn [String] SQLiteColumn) "SQLiteColumn_blob")
+    )
+
+    (defn to-sqlite3-internal [x]
+      (match x
+        (Null) (SQLiteColumn.nil)
+        (Integer i) (SQLiteColumn.int i)
+        (Floating f) (SQLiteColumn.float f)
+        (Text s) (SQLiteColumn.text s)
+        (Blob s) (SQLiteColumn.blob s)))
+  )
+
+  (defmodule SQLiteColumn
+    (register tag (Fn [&SQLiteColumn] Int) "SQLiteColumn_tag")
+
+    (register from-integer (Fn [SQLiteColumn] Int) "SQLiteColumn_from_int")
+    (register from-floating (Fn [SQLiteColumn] Double) "SQLiteColumn_from_float")
+    (register from-text (Fn [SQLiteColumn] String) "SQLiteColumn_from_str")
+
+    (defn to-carp [c]
+      (case (tag &c)
+        sql_int (Type.Integer (from-integer c))
+        sql_double (Type.Floating (from-floating c))
+        sql_text (Type.Text (from-text c))
+        sql_blob (Type.Blob (from-text c))
+        (Type.Null))))
+
+  (private SQLiteRow)
+  (hidden SQLiteRow)
+  (register-type SQLiteRow)
+  (defmodule SQLiteRow
+    (register length (Fn [&SQLiteRow] Int) "SQLiteRow_length")
+    (register nth (Fn [&SQLiteRow Int] SQLiteColumn) "SQLiteRow_nth")
+
+    (defn to-carp [r]
+      (let-do [l (length &r)
+               a (Array.allocate l)]
+        (for [i 0 l]
+          (Array.aset-uninitialized! &a i (SQLiteColumn.to-carp (nth &r i))))
+        a))
+  )
+
+  (private SQLiteRes)
+  (hidden SQLiteRes)
+  (register-type SQLiteRes)
+  (defmodule SQLiteRes
+    (register ok? (Fn [&SQLiteRes] Bool) "SQLiteRes_is_ok")
+    (register length (Fn [&SQLiteRes] Int) "SQLiteRes_length")
+    (register nth (Fn [&SQLiteRes Int] SQLiteRow) "SQLiteRes_nth")
+    (register error (Fn [SQLiteRes] (Ptr Char)) "SQLiteRes_error")
+
+    (defn to-array [r]
+      (let-do [l (length &r)
+               a (Array.allocate l)]
+        (for [i 0 l]
+          (Array.aset-uninitialized! &a i (SQLiteRow.to-carp (nth &r i))))
+        a))
+  )
+
+  (private init)
+  (hidden init)
+  (register init (Fn [] SQLite))
+  (private open-)
+  (hidden open-)
+  (register open- (Fn [&SQLite (Ptr Char)] Int) "SQLite3_open_c")
+  (private exec-)
+  (hidden exec-)
+  (register exec- (Fn [&SQLite (Ptr Char) (Array SQLiteColumn)] SQLiteRes) "SQLite3_exec_c")
+  (private error-)
+  (hidden error-)
+  (register error- (Fn [SQLite] (Ptr Char)) "SQLite3_error")
+
+  (doc open "opens a database with the filename `s`.
+
+If it fails, we return an error message using `Result.Error`.")
+  (defn open [s]
+    (let [db (SQLite3.init)
+          res (open- &db (cstr s))]
+      (if (= res sql_ok)
+        (Result.Success db)
+        (Result.Error (from-cstr (error- db))))))
+
+  (doc query "queries the database `db` using the query `s` and the parameters
+`p`.
+
+If it fails, we return an error message using `Result.Error`.")
+  (defn query [db s p]
+    (let [r (exec- db (cstr s) (Array.copy-map &(fn [x] (Type.to-sqlite3-internal @x)) p))]
+      (if (SQLiteRes.ok? &r)
+        (Result.Success (SQLiteRes.to-array r))
+        (Result.Error (from-cstr (SQLiteRes.error r))))))
+
+  (doc close "closes a database.")
+  (register close (Fn [SQLite] ()) "SQLite3_close_c")
+)
+
+(definterface to-sqlite3 (Fn [a] SQLIte3.Type))
+
+(defmodule Bool
+  (defn to-sqlite3 [b] (SQLite3.Type.Integer (if b 1 0))))
+
+(defmodule Int
+  (defn to-sqlite3 [i] (SQLite3.Type.Integer i)))
+
+(defmodule Long
+  (defn to-sqlite3 [l] (SQLite3.Type.Integer (to-int (the Long l)))))
+
+(defmodule Float
+  (defn to-sqlite3 [f] (SQLite3.Type.Floating (Double.from-float f))))
+
+(defmodule Double
+  (defn to-sqlite3 [d] (SQLite3.Type.Floating d)))
+
+(defmodule String
+  (defn to-sqlite3 [s] (SQLite3.Type.Text s)))

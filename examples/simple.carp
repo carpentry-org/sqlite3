@@ -1,0 +1,19 @@
+(load "sqlite3.carp")
+(use SQLite3)
+
+(defn main []
+  (let-do [db (Result.unsafe-from-success (SQLite3.open "test.db"))]
+    ; we can create a table
+    (ignore
+      (query &db "CREATE TABLE people (id INTEGER PRIMARY KEY AUTOINCREMENT, firstname TEXT, lastname TEXT, age INT);" &[])
+    )
+    ; insert into it with a prepared statement
+    (ignore
+      (query &db "INSERT INTO people VALUES(?1, ?2, ?3, ?4);"
+             &[(to-sqlite3 1) (to-sqlite3 @"Veit") (to-sqlite3 @"Heller") (to-sqlite3 26)]))
+    ; using the index, we can even insert out of order
+    (ignore
+      (query &db "INSERT INTO people(firstname, lastname, age) VALUES(?3, ?2, ?1);"
+             &[(SQLite3.Type.Null) (to-sqlite3 @"Svedäng") (to-sqlite3 @"Erik")]))
+    (println* &(query &db "SELECT * FROM people;" &[]))
+    (close db)))
