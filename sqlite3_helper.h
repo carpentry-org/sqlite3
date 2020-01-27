@@ -218,12 +218,12 @@ static const char* SQLite3_exec_ignore(sqlite3_stmt* s) {
     return ret;
 }
 
-const char* SQLite3_bind(sqlite3_stmt* s, Array p) {
+const char* SQLite3_bind(sqlite3_stmt* s, Array* p) {
   int res;
   const char* err = NULL;
 
-  for (int i = 0; i < p.len; i++) {
-    SQLiteColumn val = ((SQLiteColumn*)p.data)[i];
+  for (int i = 0; i < p->len; i++) {
+    SQLiteColumn val = ((SQLiteColumn*)p->data)[i];
 
     switch (val.tag) {
       case SQLITE_NULL:
@@ -252,7 +252,7 @@ const char* SQLite3_bind(sqlite3_stmt* s, Array p) {
   return err;
 }
 
-SQLiteRes SQLite3_exec_c(SQLite* db, const char* stmt, Array p) {
+SQLiteRes SQLite3_exec_c(SQLite* db, const char* stmt, Array* p) {
   sqlite3_stmt* s = NULL;
   sqlite3_stmt* n = NULL;
   const char* err;

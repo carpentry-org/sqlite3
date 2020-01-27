@@ -7,7 +7,7 @@ to wrap everything, but it tries to be useful.
 ## Installation
 
 ```clojure
-(load \"https://veitheller.de/git/carpentry/sqlite3@0.0.2\")
+(load \"https://veitheller.de/git/carpentry/sqlite3@0.0.3\")
 ```
 
 ## Usage
@@ -145,7 +145,7 @@ primitive Carp types can be casted to appropriate SQLite types by using the
   (register open- (Fn [&SQLite (Ptr Char)] Int) "SQLite3_open_c")
   (private exec-)
   (hidden exec-)
-  (register exec- (Fn [&SQLite (Ptr Char) (Array SQLiteColumn)] SQLiteRes) "SQLite3_exec_c")
+  (register exec- (Fn [&SQLite (Ptr Char) &(Array SQLiteColumn)] SQLiteRes) "SQLite3_exec_c")
   (private error-)
   (hidden error-)
   (register error- (Fn [SQLite] (Ptr Char)) "SQLite3_error")
@@ -165,7 +165,7 @@ If it fails, we return an error message using `Result.Error`.")
 
 If it fails, we return an error message using `Result.Error`.")
   (defn query [db s p]
-    (let [r (exec- db (cstr s) (Array.copy-map &(fn [x] (Type.to-sqlite3-internal @x)) p))]
+    (let [r (exec- db (cstr s) &(Array.copy-map &(fn [x] (Type.to-sqlite3-internal @x)) p))]
       (if (SQLiteRes.ok? &r)
         (Result.Success (SQLiteRes.to-array r))
         (Result.Error (from-cstr (SQLiteRes.error r))))))
