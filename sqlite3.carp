@@ -20,14 +20,23 @@ databases.
 
 ; opening DBs can fail, for the purposes of this example we
 ; ignore that
-(let-do [db (Result.unsafe-from-success (SQLite3.open \"db\"))]
-  ; we can prepare statements
-  (ignore
-    (SQLite3.query &db \"INSERT INTO mytable VALUES (?1, ?2);\"
-                   &[(to-sqlite3 @\"hello\") (to-sqlite3 100)]))
-  ; and query things
-  (println* &(SQLite3.query &db \"SELECT * from mytable;\" &[]))
-  (SQLite3.close db)
+(defn main []
+  (let-do [db (Result.unsafe-from-success (SQLite3.open \"db\"))]
+    ; Let's make sure our table is there
+    (ignore
+       (SQLite3.query &db
+                      \"CREATE TABLE IF NOT EXISTS mytable (name TEXT, age INT)\"
+                      &[]))
+
+    ; we can prepare statements
+    (ignore
+       (SQLite3.query &db
+                      \"INSERT INTO mytable VALUES (?1, ?2);\"
+                      &[(to-sqlite3 @\"Carp\") (to-sqlite3 4)]))
+
+    ; and query things
+    (println* &(SQLite3.query &db \"SELECT * from mytable;\" &[]))
+    (SQLite3.close db)))
 ```
 
 Because `open` and `query` return `Result` types, we could also use

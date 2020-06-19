@@ -37,18 +37,27 @@ to wrap everything, but it tries to be useful.</p>
 <h2>Usage</h2>
 <p>The module <code>SQLite3</code> provides facilities for opening, closing, and querying
 databases.</p>
-<pre><code class="language-clojure">(load &quot;https://veitheller.de/git/carpentry/sqlite3@0.0.1&quot;)
+<pre><code class="language-clojure">(load &quot;https://veitheller.de/git/carpentry/sqlite3@0.0.3&quot;)
 
 ; opening DBs can fail, for the purposes of this example we
 ; ignore that
-(let-do [db (Result.unsafe-from-success (SQLite3.open &quot;db&quot;))]
-  ; we can prepare statements
-  (ignore
-    (SQLite3.query &amp;db &quot;INSERT INTO mytable VALUES (?1, ?2);&quot;
-                   &amp;[(to-sqlite3 @&quot;hello&quot;) (to-sqlite3 100)]))
-  ; and query things
-  (println* &amp;(SQLite3.query &amp;db &quot;SELECT * from mytable;&quot; &amp;[]))
-  (SQLite3.close db)
+(defn main []
+  (let-do [db (Result.unsafe-from-success (SQLite3.open &quot;db&quot;))]
+    ; Let's make sure our table is there
+    (ignore
+       (SQLite3.query &amp;db
+                      &quot;CREATE TABLE IF NOT EXISTS mytable (name TEXT, age INT)&quot;
+                      &amp;[]))
+
+    ; we can prepare statements
+    (ignore
+       (SQLite3.query &amp;db
+                      &quot;INSERT INTO mytable VALUES (?1, ?2);&quot;
+                      &amp;[(to-sqlite3 @&quot;Carp&quot;) (to-sqlite3 4)]))
+
+    ; and query things
+    (println* &amp;(SQLite3.query &amp;db &quot;SELECT * from mytable;&quot; &amp;[]))
+    (SQLite3.close db)))
 </code></pre>
 <p>Because <code>open</code> and <code>query</code> return <code>Result</code> types, we could also use
 combinators!</p>
@@ -109,7 +118,7 @@ primitive Carp types can be casted to appropriate SQLite types by using the
                     external
                 </div>
                 <p class="sig">
-                    (λ [SQLite] ())
+                    (Fn [SQLite] ())
                 </p>
                 <span>
                     
@@ -129,7 +138,7 @@ primitive Carp types can be casted to appropriate SQLite types by using the
                     defn
                 </div>
                 <p class="sig">
-                    (λ [&amp;String] (Result SQLite String))
+                    (Fn [(Ref String a)] (Result SQLite String))
                 </p>
                 <pre class="args">
                     (open s)
@@ -150,7 +159,7 @@ primitive Carp types can be casted to appropriate SQLite types by using the
                     defn
                 </div>
                 <p class="sig">
-                    (λ [(Ref SQLite), &amp;String, (Ref (Array Type))] (Result (Array (Array Type)) String))
+                    (Fn [(Ref SQLite a), (Ref String b), (Ref (Array Type) c)] (Result (Array (Array Type)) String))
                 </p>
                 <pre class="args">
                     (query db s p)
