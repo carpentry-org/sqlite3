@@ -16,18 +16,27 @@ The module `SQLite3` provides facilities for opening, closing, and querying
 databases.
 
 ```clojure
-(load \"https://veitheller.de/git/carpentry/sqlite3@0.0.1\")
+(load \"https://veitheller.de/git/carpentry/sqlite3@0.0.3\")
 
 ; opening DBs can fail, for the purposes of this example we
 ; ignore that
-(let-do [db (Result.unsafe-from-success (SQLite3.open \"db\"))]
-  ; we can prepare statements
-  (ignore
-    (SQLite3.query &db \"INSERT INTO mytable VALUES (?1, ?2);\"
-                   &[(to-sqlite3 @\"hello\") (to-sqlite3 100)]))
-  ; and query things
-  (println* &(SQLite3.query &db \"SELECT * from mytable;\" &[]))
-  (SQLite3.close db)
+(defn main []
+  (let-do [db (Result.unsafe-from-success (SQLite3.open \"db\"))]
+    ; Let's make sure our table is there
+    (ignore
+       (SQLite3.query &db
+                      \"CREATE TABLE IF NOT EXISTS mytable (name TEXT, age INT)\"
+                      &[]))
+
+    ; we can prepare statements
+    (ignore
+       (SQLite3.query &db
+                      \"INSERT INTO mytable VALUES (?1, ?2);\"
+                      &[(to-sqlite3 @\"Carp\") (to-sqlite3 4)]))
+
+    ; and query things
+    (println* &(SQLite3.query &db \"SELECT * from mytable;\" &[]))
+    (SQLite3.close db)))
 ```
 
 Because `open` and `query` return `Result` types, we could also use
@@ -65,8 +74,7 @@ primitive Carp types can be casted to appropriate SQLite types by using the
     (Integer [Int])
     (Floating [Double])
     (Text [String])
-    (Blob [String])
-  )
+    (Blob [String]))
 
   (private SQLiteColumn)
   (hidden SQLiteColumn)
@@ -78,8 +86,7 @@ primitive Carp types can be casted to appropriate SQLite types by using the
       (register int (Fn [Int] SQLiteColumn) "SQLiteColumn_int")
       (register float (Fn [Double] SQLiteColumn) "SQLiteColumn_float")
       (register text (Fn [String] SQLiteColumn) "SQLiteColumn_text")
-      (register blob (Fn [String] SQLiteColumn) "SQLiteColumn_blob")
-    )
+      (register blob (Fn [String] SQLiteColumn) "SQLiteColumn_blob"))
 
     (defn to-sqlite3-internal [x]
       (match x
@@ -87,8 +94,7 @@ primitive Carp types can be casted to appropriate SQLite types by using the
         (Integer i) (SQLiteColumn.int i)
         (Floating f) (SQLiteColumn.float f)
         (Text s) (SQLiteColumn.text s)
-        (Blob s) (SQLiteColumn.blob s)))
-  )
+        (Blob s) (SQLiteColumn.blob s))))
 
   (defmodule SQLiteColumn
     (register tag (Fn [&SQLiteColumn] Int) "SQLiteColumn_tag")
@@ -117,8 +123,7 @@ primitive Carp types can be casted to appropriate SQLite types by using the
                a (Array.allocate l)]
         (for [i 0 l]
           (Array.aset-uninitialized! &a i (SQLiteColumn.to-carp (nth &r i))))
-        a))
-  )
+        a)))
 
   (private SQLiteRes)
   (hidden SQLiteRes)
@@ -127,28 +132,27 @@ primitive Carp types can be casted to appropriate SQLite types by using the
     (register ok? (Fn [&SQLiteRes] Bool) "SQLiteRes_is_ok")
     (register length (Fn [&SQLiteRes] Int) "SQLiteRes_length")
     (register nth (Fn [&SQLiteRes Int] SQLiteRow) "SQLiteRes_nth")
-    (register error (Fn [SQLiteRes] (Ptr Char)) "SQLiteRes_error")
+    (register error (Fn [SQLiteRes] (Ptr CChar)) "SQLiteRes_error")
 
     (defn to-array [r]
       (let-do [l (length &r)
                a (Array.allocate l)]
         (for [i 0 l]
           (Array.aset-uninitialized! &a i (SQLiteRow.to-carp (nth &r i))))
-        a))
-  )
+        a)))
 
   (private init)
   (hidden init)
   (register init (Fn [] SQLite))
   (private open-)
   (hidden open-)
-  (register open- (Fn [&SQLite (Ptr Char)] Int) "SQLite3_open_c")
+  (register open- (Fn [&SQLite (Ptr CChar)] Int) "SQLite3_open_c")
   (private exec-)
   (hidden exec-)
-  (register exec- (Fn [&SQLite (Ptr Char) &(Array SQLiteColumn)] SQLiteRes) "SQLite3_exec_c")
+  (register exec- (Fn [&SQLite (Ptr CChar) &(Array SQLiteColumn)] SQLiteRes) "SQLite3_exec_c")
   (private error-)
   (hidden error-)
-  (register error- (Fn [SQLite] (Ptr Char)) "SQLite3_error")
+  (register error- (Fn [SQLite] (Ptr CChar)) "SQLite3_error")
 
   (doc open "opens a database with the filename `s`.
 
@@ -171,25 +175,31 @@ If it fails, we return an error message using `Result.Error`.")
         (Result.Error (from-cstr (SQLiteRes.error r))))))
 
   (doc close "closes a database.")
-  (register close (Fn [SQLite] ()) "SQLite3_close_c")
-)
+  (register close (Fn [SQLite] ()) "SQLite3_close_c"))
 
 (definterface to-sqlite3 (Fn [a] SQLIte3.Type))
 
 (defmodule Bool
+  (implements to-sqlite3 to-sqlite3)
   (defn to-sqlite3 [b] (SQLite3.Type.Integer (if b 1 0))))
 
 (defmodule Int
+  (implements to-sqlite3 to-sqlite3)
   (defn to-sqlite3 [i] (SQLite3.Type.Integer i)))
 
 (defmodule Long
+  (implements to-sqlite3 to-sqlite3)
   (defn to-sqlite3 [l] (SQLite3.Type.Integer (to-int (the Long l)))))
 
 (defmodule Float
+  (implements to-sqlite3 to-sqlite3)
   (defn to-sqlite3 [f] (SQLite3.Type.Floating (Double.from-float f))))
 
 (defmodule Double
+  (implements to-sqlite3 to-sqlite3)
   (defn to-sqlite3 [d] (SQLite3.Type.Floating d)))
 
 (defmodule String
+  (implements to-sqlite3 to-sqlite3)
   (defn to-sqlite3 [s] (SQLite3.Type.Text s)))
+

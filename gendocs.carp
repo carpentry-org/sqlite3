@@ -1,13 +1,10 @@
 (load "sqlite3.carp")
 
-(defndynamic gendocs []
-       (do
-         (Project.config "title" "sqlite3")
-         (Project.config "docs-directory" "./docs/")
-         (Project.config "docs-logo" "")
-         (Project.config "docs-styling" "style.css")
-         (Project.config "docs-generate-index" false)
-         (save-docs SQLite3)))
+(Project.config "title" "sqlite3")
+(Project.config "docs-directory" "./docs/")
+(Project.config "docs-logo" "")
+(Project.config "docs-styling" "style.css")
+(Project.config "docs-generate-index" false)
+(save-docs SQLite3)
 
-(gendocs)
 (quit)
