@@ -9,8 +9,8 @@
     <body>
         <div class="content">
             <div class="logo">
-                <a href="http://github.com/carp-lang/Carp">
-                    <img src="logo.png">
+                <a href="">
+                    <img src="">
                 </a>
                 <div class="title">
                     sqlite3
@@ -32,12 +32,12 @@
                 <p>is a simple high-level wrapper around SQLite3. It doesn’t intend
 to wrap everything, but it tries to be useful.</p>
 <h2>Installation</h2>
-<pre><code class="language-clojure">(load &quot;https://veitheller.de/git/carpentry/sqlite3@0.0.4&quot;)
+<pre><code class="language-clojure">(load &quot;https://veitheller.de/git/carpentry/sqlite3@0.0.5&quot;)
 </code></pre>
 <h2>Usage</h2>
 <p>The module <code>SQLite3</code> provides facilities for opening, closing, and querying
 databases.</p>
-<pre><code class="language-clojure">(load &quot;https://veitheller.de/git/carpentry/sqlite3@0.0.4&quot;)
+<pre><code class="language-clojure">(load &quot;https://veitheller.de/git/carpentry/sqlite3@0.0.5&quot;)
 
 ; opening DBs can fail, for the purposes of this example we
 ; ignore that
@@ -70,7 +70,7 @@ combinators!</p>
                     </h3>
                 </a>
                 <div class="description">
-                    doc-stub
+                    meta-stub
                 </div>
                 <p class="sig">
                     a
@@ -101,11 +101,7 @@ anything.</p>
                     
                 </span>
                 <p class="doc">
-                    <p>represent all the SQLite types we can represent.</p>
-<p>The constructors are <code>Null</code>, <code>Integer</code>, <code>Floating</code>, <code>Text</code>, and <code>Blob</code>. Most
-primitive Carp types can be casted to appropriate SQLite types by using the
-<code>to-sqlite3</code> interface.</p>
-
+                    
                 </p>
             </div>
             <div class="binder">
@@ -159,7 +155,7 @@ primitive Carp types can be casted to appropriate SQLite types by using the
                     defn
                 </div>
                 <p class="sig">
-                    (Fn [(Ref SQLite a), (Ref String b), (Ref (Array Type) c)] (Result (Array (Array Type)) String))
+                    (Fn [(Ref SQLite a), (Ref String b), (Ref (Array SQLite3.Type) c)] (Result (Array (Array SQLite3.Type)) String))
                 </p>
                 <pre class="args">
                     (query db s p)

@@ -7,7 +7,7 @@ to wrap everything, but it tries to be useful.
 ## Installation
 
 ```clojure
-(load \"https://veitheller.de/git/carpentry/sqlite3@0.0.4\")
+(load \"https://veitheller.de/git/carpentry/sqlite3@0.0.5\")
 ```
 
 ## Usage
@@ -16,7 +16,7 @@ The module `SQLite3` provides facilities for opening, closing, and querying
 databases.
 
 ```clojure
-(load \"https://veitheller.de/git/carpentry/sqlite3@0.0.4\")
+(load \"https://veitheller.de/git/carpentry/sqlite3@0.0.5\")
 
 ; opening DBs can fail, for the purposes of this example we
 ; ignore that
@@ -177,29 +177,29 @@ If it fails, we return an error message using `Result.Error`.")
   (doc close "closes a database.")
   (register close (Fn [SQLite] ()) "SQLite3_close_c"))
 
-(definterface to-sqlite3 (Fn [a] SQLIte3.Type))
+(definterface to-sqlite3 (Fn [a] SQLite3.Type))
 
 (defmodule Bool
-  (implements to-sqlite3 to-sqlite3)
-  (defn to-sqlite3 [b] (SQLite3.Type.Integer (if b 1 0))))
+  (defn to-sqlite3 [b] (SQLite3.Type.Integer (if b 1 0)))
+  (implements to-sqlite3 Bool.to-sqlite3))
 
 (defmodule Int
-  (implements to-sqlite3 to-sqlite3)
-  (defn to-sqlite3 [i] (SQLite3.Type.Integer i)))
+  (defn to-sqlite3 [i] (SQLite3.Type.Integer i))
+  (implements to-sqlite3 Int.to-sqlite3))
 
 (defmodule Long
-  (implements to-sqlite3 to-sqlite3)
-  (defn to-sqlite3 [l] (SQLite3.Type.Integer (to-int (the Long l)))))
+  (defn to-sqlite3 [l] (SQLite3.Type.Integer (to-int (the Long l))))
+  (implements to-sqlite3 Long.to-sqlite3))
 
 (defmodule Float
-  (implements to-sqlite3 to-sqlite3)
-  (defn to-sqlite3 [f] (SQLite3.Type.Floating (Double.from-float f))))
+  (defn to-sqlite3 [f] (SQLite3.Type.Floating (Double.from-float f)))
+  (implements to-sqlite3 Float.to-sqlite3))
 
 (defmodule Double
-  (implements to-sqlite3 to-sqlite3)
-  (defn to-sqlite3 [d] (SQLite3.Type.Floating d)))
+  (defn to-sqlite3 [d] (SQLite3.Type.Floating d))
+  (implements to-sqlite3 Double.to-sqlite3))
 
 (defmodule String
-  (implements to-sqlite3 to-sqlite3)
-  (defn to-sqlite3 [s] (SQLite3.Type.Text s)))
+  (defn to-sqlite3 [s] (SQLite3.Type.Text s))
+  (implements to-sqlite3 String.to-sqlite3))
 
