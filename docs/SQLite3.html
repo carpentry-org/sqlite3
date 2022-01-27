@@ -18,26 +18,49 @@
                 <div class="index">
                     <ul>
                         <li>
-                            <a href="SQLite3.html">
-                                SQLite3
-                            </a>
+                            <details>
+                                <summary>
+                                    <a href="SQLite3.html">
+                                        SQLite3
+                                    </a>
+                                </summary>
+                                <ul>
+                                    <li>
+                                        <details>
+                                            <summary>
+                                                <a href="SQLite3.Type.html">
+                                                    Type
+                                                </a>
+                                            </summary>
+                                            <ul>
+                                                <li>
+                                                    <a href="SQLite3.Type.SQLiteColumn.html">
+                                                        SQLiteColumn
+                                                    </a>
+                                                </li>
+                                            </ul>
+                                        </details>
+                                    </li>
+                                </ul>
+                            </details>
                         </li>
                     </ul>
                 </div>
             </div>
-            <h1>
-                SQLite3
-            </h1>
-            <div class="module-description">
-                <p>is a simple high-level wrapper around SQLite3. It doesn’t intend
+            <div class="module">
+                <h1>
+                    SQLite3
+                </h1>
+                <div class="module-description">
+                    <p>is a simple high-level wrapper around SQLite3. It doesn’t intend
 to wrap everything, but it tries to be useful.</p>
 <h2>Installation</h2>
-<pre><code class="language-clojure">(load &quot;https://veitheller.de/git/carpentry/sqlite3@0.0.5&quot;)
+<pre><code class="language-clojure">(load &quot;git@veitheller.de:git/carpentry/sqlite3.git@0.0.6&quot;)
 </code></pre>
 <h2>Usage</h2>
 <p>The module <code>SQLite3</code> provides facilities for opening, closing, and querying
 databases.</p>
-<pre><code class="language-clojure">(load &quot;https://veitheller.de/git/carpentry/sqlite3@0.0.5&quot;)
+<pre><code class="language-clojure">(load &quot;git@veitheller.de:git/carpentry/sqlite3.git@0.0.6&quot;)
 
 ; opening DBs can fail, for the purposes of this example we
 ; ignore that
@@ -62,110 +85,113 @@ databases.</p>
 <p>Because <code>open</code> and <code>query</code> return <code>Result</code> types, we could also use
 combinators!</p>
 
-            </div>
-            <div class="binder">
-                <a class="anchor" href="#SQLite">
-                    <h3 id="SQLite">
-                        SQLite
-                    </h3>
-                </a>
-                <div class="description">
-                    meta-stub
                 </div>
-                <p class="sig">
-                    a
-                </p>
-                <span>
-                    
-                </span>
-                <p class="doc">
-                    <p>is the opaque database type. You’ll need one of those to query
+                <div class="binder">
+                    <a class="anchor" href="#SQLite">
+                        <h3 id="SQLite">
+                            SQLite
+                        </h3>
+                    </a>
+                    <div class="description">
+                        meta-stub
+                    </div>
+                    <p class="sig">
+                        a
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>is the opaque database type. You’ll need one of those to query
 anything.</p>
 <p>It can be obtained by using <a href="#open">open</a>.</p>
 
-                </p>
-            </div>
-            <div class="binder">
-                <a class="anchor" href="#Type">
-                    <h3 id="Type">
-                        Type
-                    </h3>
-                </a>
-                <div class="description">
-                    module
+                    </p>
                 </div>
-                <p class="sig">
-                    Module
-                </p>
-                <span>
-                    
-                </span>
-                <p class="doc">
-                    
-                </p>
-            </div>
-            <div class="binder">
-                <a class="anchor" href="#close">
-                    <h3 id="close">
-                        close
-                    </h3>
-                </a>
-                <div class="description">
-                    external
+                <div class="binder">
+                    <a class="anchor" href="#Type">
+                        <h3 id="Type">
+                            <a href="SQLite3.Type.html">
+                                Type
+                            </a>
+                        </h3>
+                    </a>
+                    <div class="description">
+                        module
+                    </div>
+                    <p class="sig">
+                        Module
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        
+                    </p>
                 </div>
-                <p class="sig">
-                    (Fn [SQLite] ())
-                </p>
-                <span>
-                    
-                </span>
-                <p class="doc">
-                    <p>closes a database.</p>
+                <div class="binder">
+                    <a class="anchor" href="#close">
+                        <h3 id="close">
+                            close
+                        </h3>
+                    </a>
+                    <div class="description">
+                        external
+                    </div>
+                    <p class="sig">
+                        (Fn [SQLite] ())
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>closes a database.</p>
 
-                </p>
-            </div>
-            <div class="binder">
-                <a class="anchor" href="#open">
-                    <h3 id="open">
-                        open
-                    </h3>
-                </a>
-                <div class="description">
-                    defn
+                    </p>
                 </div>
-                <p class="sig">
-                    (Fn [(Ref String a)] (Result SQLite String))
-                </p>
-                <pre class="args">
-                    (open s)
-                </pre>
-                <p class="doc">
-                    <p>opens a database with the filename <code>s</code>.</p>
+                <div class="binder">
+                    <a class="anchor" href="#open">
+                        <h3 id="open">
+                            open
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref String a)] (Result SQLite String))
+                    </p>
+                    <pre class="args">
+                        (open s)
+                    </pre>
+                    <p class="doc">
+                        <p>opens a database with the filename <code>s</code>.</p>
 <p>If it fails, we return an error message using <code>Result.Error</code>.</p>
 
-                </p>
-            </div>
-            <div class="binder">
-                <a class="anchor" href="#query">
-                    <h3 id="query">
-                        query
-                    </h3>
-                </a>
-                <div class="description">
-                    defn
+                    </p>
                 </div>
-                <p class="sig">
-                    (Fn [(Ref SQLite a), (Ref String b), (Ref (Array SQLite3.Type) c)] (Result (Array (Array SQLite3.Type)) String))
-                </p>
-                <pre class="args">
-                    (query db s p)
-                </pre>
-                <p class="doc">
-                    <p>queries the database <code>db</code> using the query <code>s</code> and the parameters
+                <div class="binder">
+                    <a class="anchor" href="#query">
+                        <h3 id="query">
+                            query
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref SQLite a), (Ref String b), (Ref (Array SQLite3.Type) c)] (Result (Array (Array SQLite3.Type)) String))
+                    </p>
+                    <pre class="args">
+                        (query db s p)
+                    </pre>
+                    <p class="doc">
+                        <p>queries the database <code>db</code> using the query <code>s</code> and the parameters
 <code>p</code>.</p>
 <p>If it fails, we return an error message using <code>Result.Error</code>.</p>
 
-                </p>
+                    </p>
+                </div>
             </div>
         </div>
     </body>

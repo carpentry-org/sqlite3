@@ -7,7 +7,7 @@ to wrap everything, but it tries to be useful.
 ## Installation
 
 ```clojure
-(load \"https://veitheller.de/git/carpentry/sqlite3@0.0.5\")
+(load \"git@veitheller.de:git/carpentry/sqlite3.git@0.0.6\")
 ```
 
 ## Usage
@@ -16,7 +16,7 @@ The module `SQLite3` provides facilities for opening, closing, and querying
 databases.
 
 ```clojure
-(load \"https://veitheller.de/git/carpentry/sqlite3@0.0.5\")
+(load \"git@veitheller.de:git/carpentry/sqlite3.git@0.0.6\")
 
 ; opening DBs can fail, for the purposes of this example we
 ; ignore that
@@ -87,6 +87,10 @@ primitive Carp types can be casted to appropriate SQLite types by using the
       (register float (Fn [Double] SQLiteColumn) "SQLiteColumn_float")
       (register text (Fn [String] SQLiteColumn) "SQLiteColumn_text")
       (register blob (Fn [String] SQLiteColumn) "SQLiteColumn_blob"))
+
+    (defn prn [s]
+      (SQLite3.Type.str s))
+    (implements prn SQLite3.Type.prn)
 
     (defn to-sqlite3-internal [x]
       (match x
