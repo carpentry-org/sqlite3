@@ -107,17 +107,16 @@ primitive Carp types can be casted to appropriate SQLite types by using the
     (register from-text (Fn [SQLiteColumn] String) "SQLiteColumn_from_str")
 
     (defn to-carp [c]
-      (case
-        (tag &c)
-        sql_int
-        (Type.Integer (from-integer c))
-        sql_double
-        (Type.Floating (from-floating c))
-        sql_text
-        (Type.Text (from-text c))
-        sql_blob
-        (Type.Blob (from-text c))
-        (Type.Null))))
+      (case (tag &c)
+            sql_int
+            (Type.Integer (from-integer c))
+            sql_double
+            (Type.Floating (from-floating c))
+            sql_text
+            (Type.Text (from-text c))
+            sql_blob
+            (Type.Blob (from-text c))
+            (Type.Null))))
 
   (private SQLiteRow)
   (hidden SQLiteRow)
@@ -179,10 +178,9 @@ If it fails, we return an error message using `Result.Error`.")
 
 If it fails, we return an error message using `Result.Error`.")
   (defn query [db s p]
-    (let [r (exec-
-            db
-            (cstr s)
-            &(Array.copy-map &(fn [x] (Type.to-sqlite3-internal @x)) p))]
+    (let [r (exec- db
+                   (cstr s)
+                   &(Array.copy-map &(fn [x] (Type.to-sqlite3-internal @x)) p))]
       (if (SQLiteRes.ok? &r)
         (Result.Success (SQLiteRes.to-array r))
         (Result.Error (from-cstr (SQLiteRes.error r))))))
