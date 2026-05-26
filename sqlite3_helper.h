@@ -9,7 +9,7 @@ typedef struct {
 typedef struct {
   int tag;
   union {
-    long i;
+    int64_t i;
     double f;
     char* s;
   };
@@ -19,7 +19,7 @@ int SQLiteColumn_tag(SQLiteColumn* col) {
   return col->tag;
 }
 
-long SQLiteColumn_from_int(SQLiteColumn col) {
+int64_t SQLiteColumn_from_int(SQLiteColumn col) {
   return col.i;
 }
 
@@ -37,7 +37,7 @@ SQLiteColumn SQLiteColumn_nil() {
   return res;
 }
 
-SQLiteColumn SQLiteColumn_int(long i) {
+SQLiteColumn SQLiteColumn_int(int64_t i) {
   SQLiteColumn res;
   res.tag = SQLITE_INTEGER;
   res.i = i;
@@ -169,7 +169,7 @@ const char* SQLite3_exec_internal(sqlite3_stmt* s, SQLiteRows* rows) {
         c->tag = sqlite3_column_type(s, i);
         switch(c->tag) {
           case SQLITE_INTEGER:
-            c->i = (long)sqlite3_column_int64(s, i);
+            c->i = sqlite3_column_int64(s, i);
             break;
           case SQLITE_FLOAT:
             c->f = sqlite3_column_double(s, i);
