@@ -245,4 +245,122 @@
     &(str &(SQLite3.Type.Floating 1.5))
     "Type.Floating str")
 
-  (assert-equal test "(Null)" &(str &(SQLite3.Type.Null)) "Type.Null str"))
+  (assert-equal test "(Null)" &(str &(SQLite3.Type.Null)) "Type.Null str")
+
+  ; =========================================================================
+  ; last-insert-rowid
+  ; =========================================================================
+
+  (assert-equal test
+    1l
+    (let-do [db (open-memory)]
+      (ignore (SQLite3.query &db "CREATE TABLE t (id INTEGER PRIMARY KEY);" &[]))
+      (ignore (SQLite3.query &db "INSERT INTO t VALUES (NULL);" &[]))
+      (let-do [r (SQLite3.last-insert-rowid &db)] (SQLite3.close db) r))
+    "last-insert-rowid returns 1 after first insert")
+
+  (assert-equal test
+    2l
+    (let-do [db (open-memory)]
+      (ignore (SQLite3.query &db "CREATE TABLE t (id INTEGER PRIMARY KEY);" &[]))
+      (ignore (SQLite3.query &db "INSERT INTO t VALUES (NULL);" &[]))
+      (ignore (SQLite3.query &db "INSERT INTO t VALUES (NULL);" &[]))
+      (let-do [r (SQLite3.last-insert-rowid &db)] (SQLite3.close db) r))
+    "last-insert-rowid returns 2 after second insert")
+
+  ; =========================================================================
+  ; changes
+  ; =========================================================================
+
+  (assert-equal test
+    3
+    (let-do [db (open-memory)]
+      (ignore (SQLite3.query &db "CREATE TABLE t (x INT);" &[]))
+      (ignore (SQLite3.query &db "INSERT INTO t VALUES (1);" &[]))
+      (ignore (SQLite3.query &db "INSERT INTO t VALUES (2);" &[]))
+      (ignore (SQLite3.query &db "INSERT INTO t VALUES (3);" &[]))
+      (ignore (SQLite3.query &db "DELETE FROM t;" &[]))
+      (let-do [r (SQLite3.changes &db)] (SQLite3.close db) r))
+    "changes returns 3 after deleting 3 rows")
+
+  ; =========================================================================
+  ; Transactions - begin / commit
+  ; =========================================================================
+
+  (assert-true test
+    (let-do [db (open-memory)]
+      (let-do [r (SQLite3.begin &db)]
+        (ignore (SQLite3.commit &db))
+        (SQLite3.close db)
+        (Result.success? &r)))
+    "begin succeeds")
+
+  (assert-equal test
+    &(Result.Success [[(SQLite3.Type.Integer 1l)]])
+    &(let-do [db (open-memory)]
+      (ignore (SQLite3.query &db "CREATE TABLE t (x INT);" &[]))
+      (ignore (SQLite3.begin &db))
+      (ignore (SQLite3.query &db "INSERT INTO t VALUES (1);" &[]))
+      (ignore (SQLite3.commit &db))
+      (let-do [r (SQLite3.query &db "SELECT * FROM t;" &[])]
+        (SQLite3.close db)
+        r))
+    "committed data persists")
+
+  ; =========================================================================
+  ; Transactions - rollback
+  ; =========================================================================
+
+  (assert-equal test
+    &(Result.Success (the (Array (Array SQLite3.Type)) []))
+    &(let-do [db (open-memory)]
+      (ignore (SQLite3.query &db "CREATE TABLE t (x INT);" &[]))
+      (ignore (SQLite3.begin &db))
+      (ignore (SQLite3.query &db "INSERT INTO t VALUES (1);" &[]))
+      (ignore (SQLite3.rollback &db))
+      (let-do [r (SQLite3.query &db "SELECT * FROM t;" &[])]
+        (SQLite3.close db)
+        r))
+    "rolled-back data is gone")
+
+  ; =========================================================================
+  ; with-transaction macro - success path
+  ; =========================================================================
+
+  (assert-equal test
+    &(Result.Success [[(SQLite3.Type.Integer 1l)]])
+    &(let-do [db (open-memory)]
+      (ignore (SQLite3.query &db "CREATE TABLE t (x INT);" &[]))
+      (let-do [r (SQLite3.with-transaction &db
+                                           (do
+                                             (ignore
+                                               (SQLite3.query &db
+                                                              "INSERT INTO t VALUES (1);"
+                                                              &[]))
+                                             (SQLite3.query &db
+                                                            "SELECT * FROM t;"
+                                                            &[])))]
+        (SQLite3.close db)
+        r))
+    "with-transaction commits on success")
+
+  ; =========================================================================
+  ; with-transaction macro - error path (rollback)
+  ; =========================================================================
+
+  (assert-equal test
+    &(Result.Success (the (Array (Array SQLite3.Type)) []))
+    &(let-do [db (open-memory)]
+      (ignore (SQLite3.query &db "CREATE TABLE t (x INT);" &[]))
+      (ignore
+        (SQLite3.with-transaction &db
+                                  (do
+                                    (ignore
+                                      (SQLite3.query &db
+                                                     "INSERT INTO t VALUES (1);"
+                                                     &[]))
+                                    (SQLite3.query &db "NOT VALID SQL;" &[]))))
+      (let-do [r (SQLite3.query &db "SELECT * FROM t;" &[])]
+        (SQLite3.close db)
+        r))
+    "with-transaction rolls back on error"))

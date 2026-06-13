@@ -170,7 +170,7 @@ primitive Carp types can be casted to appropriate SQLite types by using the
     "SQLite3_exec_c")
   (private error-)
   (hidden error-)
-  (register error- (Fn [SQLite] (Ptr CChar)) "SQLite3_error")
+  (register error- (Fn [SQLite] String) "SQLite3_error")
 
   (doc open "opens a database with the filename `s`.
 
@@ -178,9 +178,7 @@ If it fails, we return an error message using `Result.Error`.")
   (defn open [s]
     (let [db (SQLite3.init)
           res (open- &db (cstr s))]
-      (if (= res sql_ok)
-        (Result.Success db)
-        (Result.Error (from-cstr (error- db))))))
+      (if (= res sql_ok) (Result.Success db) (Result.Error (error- db)))))
 
   (doc query "queries the database `db` using the query `s` and the parameters
 `p`.
@@ -195,7 +193,71 @@ If it fails, we return an error message using `Result.Error`.")
         (Result.Error (from-cstr (SQLiteRes.error r))))))
 
   (doc close "closes a database.")
-  (register close (Fn [SQLite] ()) "SQLite3_close_c"))
+  (register close (Fn [SQLite] ()) "SQLite3_close_c")
+
+  (doc last-insert-rowid "returns the row ID of the last successful INSERT.")
+  (register last-insert-rowid (Fn [&SQLite] Long) "SQLite3_last_insert_rowid")
+
+  (doc changes "returns the number of rows modified by the last INSERT, UPDATE,
+or DELETE.")
+  (register changes (Fn [&SQLite] Int) "SQLite3_changes")
+
+  (doc begin "begins a transaction.")
+  (defn begin [db]
+    (match (query db "BEGIN TRANSACTION;" &[])
+      (Result.Success _) (Result.Success ())
+      (Result.Error e) (Result.Error e)))
+
+  (doc commit "commits the current transaction.")
+  (defn commit [db]
+    (match (query db "COMMIT;" &[])
+      (Result.Success _) (Result.Success ())
+      (Result.Error e) (Result.Error e)))
+
+  (doc rollback "rolls back the current transaction.")
+  (defn rollback [db]
+    (match (query db "ROLLBACK;" &[])
+      (Result.Success _) (Result.Success ())
+      (Result.Error e) (Result.Error e)))
+
+  (doc with-transaction "executes `body` inside a transaction. If `body`
+evaluates to a `Result.Error`, the transaction is rolled back; otherwise it is
+committed. Returns the result of `body`, or the error from `begin`/`commit`
+if those fail.
+
+Example:
+```
+(SQLite3.with-transaction &db
+  (do
+    (ignore (SQLite3.query &db \"INSERT INTO t VALUES (1);\" &[]))
+    (SQLite3.query &db \"SELECT * FROM t;\" &[])))
+```")
+  (defmacro with-transaction [db body]
+    (list 'let
+          (array '__wtx_begin (list 'SQLite3.begin db))
+          (list 'match
+                '__wtx_begin
+                (list 'Result.Error '__wtx_err)
+                (list 'Result.Error '__wtx_err)
+                (list 'Result.Success '_)
+                (list 'let
+                      (array '__wtx_result body)
+                      (list 'match
+                            '__wtx_result
+                            (list 'Result.Error '__wtx_berr)
+                            (list 'do
+                                  (list 'ignore (list 'SQLite3.rollback db))
+                                  (list 'Result.Error '__wtx_berr))
+                            (list 'Result.Success '__wtx_val)
+                            (list 'match
+                                  (list 'SQLite3.commit db)
+                                  (list 'Result.Error '__wtx_cerr)
+                                  (list 'do
+                                        (list 'ignore
+                                              (list 'SQLite3.rollback db))
+                                        (list 'Result.Error '__wtx_cerr))
+                                  (list 'Result.Success '_)
+                                  (list 'Result.Success '__wtx_val))))))))
 
 (definterface to-sqlite3 (Fn [a] SQLite3.Type))
 

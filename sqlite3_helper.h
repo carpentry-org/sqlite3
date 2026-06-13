@@ -293,6 +293,19 @@ void SQLite3_close_c(SQLite db) {
   sqlite3_close_v2(db.handle);
 }
 
+int64_t SQLite3_last_insert_rowid(SQLite* db) {
+  return (int64_t)sqlite3_last_insert_rowid(db->handle);
+}
+
+int SQLite3_changes(SQLite* db) {
+  return sqlite3_changes(db->handle);
+}
+
 char* SQLite3_error(SQLite db) {
-  return (char*)sqlite3_errmsg(db.handle);
+  const char* msg = sqlite3_errmsg(db.handle);
+  size_t len = strlen(msg);
+  char* copy = CARP_MALLOC(len + 1);
+  memcpy(copy, msg, len + 1);
+  sqlite3_close_v2(db.handle);
+  return copy;
 }
