@@ -170,7 +170,7 @@ primitive Carp types can be casted to appropriate SQLite types by using the
     "SQLite3_exec_c")
   (private error-)
   (hidden error-)
-  (register error- (Fn [SQLite] String) "SQLite3_error")
+  (register error- (Fn [SQLite] String) "SQLite3_error_and_close")
 
   (doc open "opens a database with the filename `s`.
 

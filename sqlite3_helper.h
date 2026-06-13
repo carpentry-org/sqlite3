@@ -301,7 +301,7 @@ int SQLite3_changes(SQLite* db) {
   return sqlite3_changes(db->handle);
 }
 
-char* SQLite3_error(SQLite db) {
+char* SQLite3_error_and_close(SQLite db) {
   const char* msg = sqlite3_errmsg(db.handle);
   size_t len = strlen(msg);
   char* copy = CARP_MALLOC(len + 1);

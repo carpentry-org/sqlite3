@@ -6,7 +6,9 @@
 ; Helpers
 ; ---------------------------------------------------------------------------
 
-(defn open-memory [] (Result.unsafe-from-success (SQLite3.open ":memory:")))
+(defn open-memory []
+  (Result.expect (SQLite3.open ":memory:")
+                 "test setup failed: could not open :memory: db"))
 
 ; ---------------------------------------------------------------------------
 ; Tests
