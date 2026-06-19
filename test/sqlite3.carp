@@ -328,12 +328,13 @@
   (assert-equal test
     &(Result.Success [[(SQLite3.Type.Integer 42l)]])
     &(let [db (open-memory)]
-      (let-do [stmt (Result.unsafe-from-success (SQLite3.prepare &db
-                                                                 "SELECT ?1;"))
-               r (SQLite3.exec-prepared &stmt &[(to-sqlite3 42)])]
-        (SQLite3.finalize-stmt stmt)
-        (SQLite3.close db)
-        r))
+      (match (SQLite3.prepare &db "SELECT ?1;")
+        (Result.Success stmt)
+          (let-do [r (SQLite3.exec-prepared &stmt &[(to-sqlite3 42)])]
+            (SQLite3.finalize-stmt stmt)
+            (SQLite3.close db)
+            r)
+        (Result.Error e) (do (SQLite3.close db) (Result.Error e))))
     "exec-prepared returns results")
 
   (assert-equal test
@@ -341,33 +342,35 @@
       [[(SQLite3.Type.Integer 1l) (SQLite3.Type.Text @"a")]
        [(SQLite3.Type.Integer 2l) (SQLite3.Type.Text @"b")]
        [(SQLite3.Type.Integer 3l) (SQLite3.Type.Text @"c")]])
-    &(let [db (open-memory)]
-      (let-do [_ (ignore
-                 (SQLite3.query &db "CREATE TABLE t (id INT, name TEXT);" &[]))
-               stmt (Result.unsafe-from-success
-                 (SQLite3.prepare &db "INSERT INTO t VALUES (?1, ?2);"))]
-        (ignore
-          (SQLite3.exec-prepared &stmt &[(to-sqlite3 1) (to-sqlite3 @"a")]))
-        (ignore
-          (SQLite3.exec-prepared &stmt &[(to-sqlite3 2) (to-sqlite3 @"b")]))
-        (ignore
-          (SQLite3.exec-prepared &stmt &[(to-sqlite3 3) (to-sqlite3 @"c")]))
-        (SQLite3.finalize-stmt stmt)
-        (let-do [r (SQLite3.query &db "SELECT * FROM t ORDER BY id;" &[])]
-          (SQLite3.close db)
-          r)))
+    &(let-do [db (open-memory)]
+      (ignore (SQLite3.query &db "CREATE TABLE t (id INT, name TEXT);" &[]))
+      (match (SQLite3.prepare &db "INSERT INTO t VALUES (?1, ?2);")
+        (Result.Success stmt)
+          (do
+            (ignore
+              (SQLite3.exec-prepared &stmt &[(to-sqlite3 1) (to-sqlite3 @"a")]))
+            (ignore
+              (SQLite3.exec-prepared &stmt &[(to-sqlite3 2) (to-sqlite3 @"b")]))
+            (ignore
+              (SQLite3.exec-prepared &stmt &[(to-sqlite3 3) (to-sqlite3 @"c")]))
+            (SQLite3.finalize-stmt stmt)
+            (let-do [r (SQLite3.query &db "SELECT * FROM t ORDER BY id;" &[])]
+              (SQLite3.close db)
+              r))
+        (Result.Error e) (do (SQLite3.close db) (Result.Error e))))
     "exec-prepared reuses statement for multiple inserts")
 
   (assert-equal test
     &(Result.Success (the (Array (Array SQLite3.Type)) []))
-    &(let [db (open-memory)]
-      (let-do [_ (ignore (SQLite3.query &db "CREATE TABLE t (x INT);" &[]))
-               stmt (Result.unsafe-from-success (SQLite3.prepare &db
-                                                                 "SELECT * FROM t;"))]
-        (let-do [r (SQLite3.exec-prepared &stmt &[])]
-          (SQLite3.finalize-stmt stmt)
-          (SQLite3.close db)
-          r)))
+    &(let-do [db (open-memory)]
+      (ignore (SQLite3.query &db "CREATE TABLE t (x INT);" &[]))
+      (match (SQLite3.prepare &db "SELECT * FROM t;")
+        (Result.Success stmt)
+          (let-do [r (SQLite3.exec-prepared &stmt &[])]
+            (SQLite3.finalize-stmt stmt)
+            (SQLite3.close db)
+            r)
+        (Result.Error e) (do (SQLite3.close db) (Result.Error e))))
     "exec-prepared with no rows returns empty array")
 
   (assert-equal test
@@ -380,34 +383,39 @@
       (ignore (SQLite3.query &db "INSERT INTO t VALUES (1);" &[]))
       (ignore (SQLite3.query &db "INSERT INTO t VALUES (2);" &[]))
       (ignore (SQLite3.query &db "INSERT INTO t VALUES (3);" &[]))
-      (let-do [stmt (Result.unsafe-from-success
-                 (SQLite3.prepare &db "SELECT * FROM t WHERE x > ?1;"))
-               r (SQLite3.exec-prepared &stmt &[(to-sqlite3 0)])]
-        (SQLite3.finalize-stmt stmt)
-        (SQLite3.close db)
-        r))
+      (match (SQLite3.prepare &db "SELECT * FROM t WHERE x > ?1;")
+        (Result.Success stmt)
+          (let-do [r (SQLite3.exec-prepared &stmt &[(to-sqlite3 0)])]
+            (SQLite3.finalize-stmt stmt)
+            (SQLite3.close db)
+            r)
+        (Result.Error e) (do (SQLite3.close db) (Result.Error e))))
     "exec-prepared with parameterized SELECT works")
 
   (assert-true test
-    (let [db (open-memory)]
-      (let-do [_ (ignore (SQLite3.query &db "CREATE TABLE t (x INT);" &[]))
-               stmt (Result.unsafe-from-success
-                 (SQLite3.prepare &db "INSERT INTO t VALUES (?1);"))]
-        (SQLite3.reset-stmt &stmt)
-        (let-do [r (SQLite3.exec-prepared &stmt &[(to-sqlite3 99)])]
-          (SQLite3.finalize-stmt stmt)
-          (SQLite3.close db)
-          (Result.success? &r))))
+    (let-do [db (open-memory)]
+      (ignore (SQLite3.query &db "CREATE TABLE t (x INT);" &[]))
+      (match (SQLite3.prepare &db "INSERT INTO t VALUES (?1);")
+        (Result.Success stmt)
+          (do
+            (SQLite3.reset-stmt &stmt)
+            (let-do [r (SQLite3.exec-prepared &stmt &[(to-sqlite3 99)])]
+              (SQLite3.finalize-stmt stmt)
+              (SQLite3.close db)
+              (Result.success? &r)))
+        (Result.Error _) (do (SQLite3.close db) false)))
     "reset-stmt allows re-execution")
 
   (assert-equal test
     2l
     (let-do [db (open-memory)]
       (ignore (SQLite3.query &db "CREATE TABLE t (id INTEGER PRIMARY KEY);" &[]))
-      (let-do [stmt (Result.unsafe-from-success
-                 (SQLite3.prepare &db "INSERT INTO t VALUES (NULL);"))]
-        (ignore (SQLite3.exec-prepared &stmt &[]))
-        (ignore (SQLite3.exec-prepared &stmt &[]))
-        (SQLite3.finalize-stmt stmt)
-        (let-do [r (SQLite3.last-insert-rowid &db)] (SQLite3.close db) r)))
+      (match (SQLite3.prepare &db "INSERT INTO t VALUES (NULL);")
+        (Result.Success stmt)
+          (do
+            (ignore (SQLite3.exec-prepared &stmt &[]))
+            (ignore (SQLite3.exec-prepared &stmt &[]))
+            (SQLite3.finalize-stmt stmt)
+            (let-do [r (SQLite3.last-insert-rowid &db)] (SQLite3.close db) r))
+        (Result.Error _) (do (SQLite3.close db) 0l)))
     "last-insert-rowid works with prepared inserts"))
