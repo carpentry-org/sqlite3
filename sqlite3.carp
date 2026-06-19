@@ -198,6 +198,76 @@ If it fails, we return an error message using `Result.Error`.")
   (doc close "closes a database.")
   (register close (Fn [SQLite] ()) "SQLite3_close_c")
 
+  ; =========================================================================
+  ; Prepared statements
+  ; =========================================================================
+
+  (doc Stmt "is an opaque prepared statement type. Prepare a statement once
+with [prepare](#prepare) and execute it many times with
+[exec-prepared](#exec-prepared). Call [finalize-stmt](#finalize-stmt) when
+done.")
+  (register-type Stmt)
+
+  (private stmt-init)
+  (hidden stmt-init)
+  (register stmt-init (Fn [] Stmt) "SQLite3_stmt_init")
+  (private errmsg)
+  (hidden errmsg)
+  (register errmsg (Fn [&SQLite] String) "SQLite3_errmsg_c")
+  (private exec-prepared-)
+  (hidden exec-prepared-)
+  (register exec-prepared-
+    (Fn [&Stmt &(Array SQLiteColumn)] SQLiteRes)
+    "SQLite3_exec_prepared_c")
+  (private prepare-)
+  (hidden prepare-)
+  (register prepare- (Fn [&SQLite (Ptr CChar) &Stmt] Int) "SQLite3_prepare_c")
+
+  (doc prepare "prepares a SQL statement for repeated execution.
+
+Returns a `Stmt` handle that can be executed multiple times with different
+parameters via [exec-prepared](#exec-prepared).
+
+When you are done with the statement, call [finalize-stmt](#finalize-stmt)
+to release its resources.
+
+Example:
+```
+(let [stmt (Result.unsafe-from-success
+             (SQLite3.prepare &db \"INSERT INTO t VALUES (?1, ?2);\"))]
+  (ignore (SQLite3.exec-prepared &stmt &[(to-sqlite3 1) (to-sqlite3 @\"a\")]))
+  (ignore (SQLite3.exec-prepared &stmt &[(to-sqlite3 2) (to-sqlite3 @\"b\")]))
+  (SQLite3.finalize-stmt stmt))
+```")
+  (defn prepare [db sql]
+    (let [stmt (stmt-init)
+          res (prepare- db (cstr sql) &stmt)]
+      (if (= res sql_ok) (Result.Success stmt) (Result.Error (errmsg db)))))
+
+  (doc exec-prepared "executes a prepared statement with the given parameters.
+
+The statement is automatically reset after execution, so it can be called
+again with new parameters without calling [reset-stmt](#reset-stmt).")
+  (defn exec-prepared [stmt p]
+    (let [r (exec-prepared- stmt
+                            &(Array.copy-map &(fn [x]
+                                               (Type.to-sqlite3-internal @x))
+                                             p))]
+      (if (SQLiteRes.ok? &r)
+        (Result.Success (SQLiteRes.to-array r))
+        (Result.Error (from-cstr (SQLiteRes.error r))))))
+
+  (doc reset-stmt "resets a prepared statement so it can be executed again.
+
+This is called automatically by [exec-prepared](#exec-prepared), but can be
+called manually if needed (e.g. to abort a partially-executed statement).")
+  (register reset-stmt (Fn [&Stmt] ()) "SQLite3_reset_stmt_c")
+
+  (doc finalize-stmt "finalizes a prepared statement, releasing its resources.
+
+After calling this, the statement must not be used again.")
+  (register finalize-stmt (Fn [Stmt] ()) "SQLite3_finalize_stmt_c")
+
   (doc last-insert-rowid "returns the row ID of the last successful INSERT.")
   (register last-insert-rowid (Fn [&SQLite] Long) "SQLite3_last_insert_rowid")
 
