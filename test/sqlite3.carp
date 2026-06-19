@@ -2,23 +2,11 @@
 (load "Test.carp")
 (use Test)
 
-; ---------------------------------------------------------------------------
-; Helpers
-; ---------------------------------------------------------------------------
-
 (defn open-memory []
   (Result.expect (SQLite3.open ":memory:")
                  "test setup failed: could not open :memory: db"))
 
-; ---------------------------------------------------------------------------
-; Tests
-; ---------------------------------------------------------------------------
-
 (deftest test
-  ; =========================================================================
-  ; Open / Close
-  ; =========================================================================
-
   (assert-true test
     (Result.success? &(SQLite3.open ":memory:"))
     "open in-memory database succeeds")
@@ -26,10 +14,6 @@
   (assert-true test
     (Result.error? &(SQLite3.open "/nonexistent/path/db"))
     "open invalid path fails")
-
-  ; =========================================================================
-  ; DDL queries
-  ; =========================================================================
 
   (assert-true test
     (let [db (open-memory)]
@@ -44,10 +28,6 @@
         (SQLite3.close db)
         (Result.error? &r)))
     "invalid SQL returns error")
-
-  ; =========================================================================
-  ; Insert and select - basic types
-  ; =========================================================================
 
   (assert-equal test
     &(Result.Success
@@ -71,10 +51,6 @@
         r))
     "insert and select Int, String, Double")
 
-  ; =========================================================================
-  ; Null handling
-  ; =========================================================================
-
   (assert-equal test
     &(Result.Success [[(SQLite3.Type.Null)]])
     &(let [db (open-memory)]
@@ -88,10 +64,6 @@
         (SQLite3.close db)
         r))
     "NULL round-trips correctly")
-
-  ; =========================================================================
-  ; Bool conversion
-  ; =========================================================================
 
   (assert-equal test
     &(Result.Success [[(SQLite3.Type.Integer 1l)] [(SQLite3.Type.Integer 0l)]])
@@ -111,10 +83,6 @@
         r))
     "Bool to-sqlite3 stores 1 for true, 0 for false")
 
-  ; =========================================================================
-  ; Float conversion
-  ; =========================================================================
-
   (assert-equal test
     &(Result.Success [[(SQLite3.Type.Floating 2.5)]])
     &(let [db (open-memory)]
@@ -128,10 +96,6 @@
         (SQLite3.close db)
         r))
     "Float to-sqlite3 promotes to Double correctly")
-
-  ; =========================================================================
-  ; Long - large values (the bug fix)
-  ; =========================================================================
 
   (assert-equal test
     &(Result.Success [[(SQLite3.Type.Integer 3000000000l)]])
@@ -161,10 +125,6 @@
         r))
     "negative Long values > 2^31 round-trip without truncation")
 
-  ; =========================================================================
-  ; Multiple rows
-  ; =========================================================================
-
   (assert-equal test
     &(Result.Success
       [[(SQLite3.Type.Integer 1l) (SQLite3.Type.Text @"a")]
@@ -191,10 +151,6 @@
         r))
     "multiple rows returned correctly")
 
-  ; =========================================================================
-  ; Empty result set
-  ; =========================================================================
-
   (assert-equal test
     &(Result.Success (the (Array (Array SQLite3.Type)) []))
     &(let [db (open-memory)]
@@ -204,10 +160,6 @@
         (SQLite3.close db)
         r))
     "empty result set returns empty array")
-
-  ; =========================================================================
-  ; Prepared statement parameters
-  ; =========================================================================
 
   (assert-equal test
     &(Result.Success [[(SQLite3.Type.Integer 2l) (SQLite3.Type.Text @"bob")]])
@@ -228,10 +180,6 @@
         r))
     "parameterized WHERE clause works")
 
-  ; =========================================================================
-  ; Type.str / show
-  ; =========================================================================
-
   (assert-equal test
     "(Integer 7)"
     &(str &(SQLite3.Type.Integer 7l))
@@ -248,10 +196,6 @@
     "Type.Floating str")
 
   (assert-equal test "(Null)" &(str &(SQLite3.Type.Null)) "Type.Null str")
-
-  ; =========================================================================
-  ; last-insert-rowid
-  ; =========================================================================
 
   (assert-equal test
     1l
@@ -270,10 +214,6 @@
       (let-do [r (SQLite3.last-insert-rowid &db)] (SQLite3.close db) r))
     "last-insert-rowid returns 2 after second insert")
 
-  ; =========================================================================
-  ; changes
-  ; =========================================================================
-
   (assert-equal test
     3
     (let-do [db (open-memory)]
@@ -284,10 +224,6 @@
       (ignore (SQLite3.query &db "DELETE FROM t;" &[]))
       (let-do [r (SQLite3.changes &db)] (SQLite3.close db) r))
     "changes returns 3 after deleting 3 rows")
-
-  ; =========================================================================
-  ; Transactions - begin / commit
-  ; =========================================================================
 
   (assert-true test
     (let-do [db (open-memory)]
@@ -309,10 +245,6 @@
         r))
     "committed data persists")
 
-  ; =========================================================================
-  ; Transactions - rollback
-  ; =========================================================================
-
   (assert-equal test
     &(Result.Success (the (Array (Array SQLite3.Type)) []))
     &(let-do [db (open-memory)]
@@ -324,10 +256,6 @@
         (SQLite3.close db)
         r))
     "rolled-back data is gone")
-
-  ; =========================================================================
-  ; with-transaction macro - success path
-  ; =========================================================================
 
   (assert-equal test
     &(Result.Success [[(SQLite3.Type.Integer 1l)]])
@@ -345,10 +273,6 @@
         (SQLite3.close db)
         r))
     "with-transaction commits on success")
-
-  ; =========================================================================
-  ; with-transaction macro - error path (rollback)
-  ; =========================================================================
 
   (assert-equal test
     &(Result.Success (the (Array (Array SQLite3.Type)) []))
