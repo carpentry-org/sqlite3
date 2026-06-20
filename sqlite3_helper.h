@@ -8,6 +8,7 @@ typedef struct {
 
 typedef struct {
   int tag;
+  int blob_len;
   union {
     int64_t i;
     double f;
@@ -58,10 +59,19 @@ SQLiteColumn SQLiteColumn_text(char* s) {
   return res;
 }
 
-SQLiteColumn SQLiteColumn_blob(char* s) {
+SQLiteColumn SQLiteColumn_blob(Array a) {
   SQLiteColumn res;
   res.tag = SQLITE_BLOB;
-  res.s = s;
+  res.blob_len = a.len;
+  res.s = a.data;
+  return res;
+}
+
+Array SQLiteColumn_from_blob(SQLiteColumn col) {
+  Array res;
+  res.len = col.blob_len;
+  res.capacity = col.blob_len;
+  res.data = col.s;
   return res;
 }
 
@@ -183,9 +193,9 @@ const char* SQLite3_exec_internal(sqlite3_stmt* s, SQLiteRows* rows) {
           }
           case SQLITE_BLOB: {
             len = sqlite3_column_bytes(s, i);
-            c->s = CARP_MALLOC(len+1);
+            c->blob_len = len;
+            c->s = CARP_MALLOC(len);
             memcpy(c->s, sqlite3_column_blob(s, i), len);
-            c->s[len] = '\0';
             break;
           }
           case SQLITE_NULL:
@@ -239,7 +249,7 @@ const char* SQLite3_bind(sqlite3_stmt* s, Array* p) {
         res = sqlite3_bind_text(s, i+1, val.s, strlen(val.s), SQLITE_STATIC);
         break;
       case SQLITE_BLOB:
-        res = sqlite3_bind_blob(s, i+1, val.s, strlen(val.s), SQLITE_STATIC);
+        res = sqlite3_bind_blob(s, i+1, val.s, val.blob_len, SQLITE_STATIC);
         break;
     }
     if (res != SQLITE_OK) {

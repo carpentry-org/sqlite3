@@ -289,4 +289,18 @@
       (let-do [r (SQLite3.query &db "SELECT * FROM t;" &[])]
         (SQLite3.close db)
         r))
-    "with-transaction rolls back on error"))
+    "with-transaction rolls back on error")
+
+  (assert-equal test
+    &(Result.Success [[(SQLite3.Type.Blob [0b 1b 0b 2b 3b])]])
+    &(let [db (open-memory)]
+      (let-do [r (do
+                 (ignore (SQLite3.query &db "CREATE TABLE t (data BLOB);" &[]))
+                 (ignore
+                   (SQLite3.query &db
+                                  "INSERT INTO t VALUES (?1);"
+                                  &[(SQLite3.Type.Blob [0b 1b 0b 2b 3b])]))
+                 (SQLite3.query &db "SELECT * FROM t;" &[]))]
+        (SQLite3.close db)
+        r))
+    "blob with embedded nulls round-trips correctly"))

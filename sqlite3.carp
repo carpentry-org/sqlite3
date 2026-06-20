@@ -74,7 +74,7 @@ primitive Carp types can be casted to appropriate SQLite types by using the
     (Integer [Long])
     (Floating [Double])
     (Text [String])
-    (Blob [String]))
+    (Blob [(Array Byte)]))
 
   (private SQLiteColumn)
   (hidden SQLiteColumn)
@@ -86,7 +86,7 @@ primitive Carp types can be casted to appropriate SQLite types by using the
       (register int (Fn [Long] SQLiteColumn) "SQLiteColumn_int")
       (register float (Fn [Double] SQLiteColumn) "SQLiteColumn_float")
       (register text (Fn [String] SQLiteColumn) "SQLiteColumn_text")
-      (register blob (Fn [String] SQLiteColumn) "SQLiteColumn_blob"))
+      (register blob (Fn [(Array Byte)] SQLiteColumn) "SQLiteColumn_blob"))
 
     (defn = [a b]
       (match-ref a
@@ -114,6 +114,9 @@ primitive Carp types can be casted to appropriate SQLite types by using the
     (register from-integer (Fn [SQLiteColumn] Long) "SQLiteColumn_from_int")
     (register from-floating (Fn [SQLiteColumn] Double) "SQLiteColumn_from_float")
     (register from-text (Fn [SQLiteColumn] String) "SQLiteColumn_from_str")
+    (register from-blob
+      (Fn [SQLiteColumn] (Array Byte))
+      "SQLiteColumn_from_blob")
 
     (defn to-carp [c]
       (case (tag &c)
@@ -124,7 +127,7 @@ primitive Carp types can be casted to appropriate SQLite types by using the
             sql_text
             (Type.Text (from-text c))
             sql_blob
-            (Type.Blob (from-text c))
+            (Type.Blob (from-blob c))
             (Type.Null))))
 
   (private SQLiteRow)
