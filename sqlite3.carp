@@ -220,17 +220,7 @@ release with [finalize-stmt](#finalize-stmt).")
 
   (doc prepare "prepares a SQL statement for repeated execution via
 [exec-prepared](#exec-prepared). Release with [finalize-stmt](#finalize-stmt)
-when done.
-
-Example:
-```
-(match (SQLite3.prepare &db \"INSERT INTO t VALUES (?1, ?2);\")
-  (Result.Success stmt)
-    (do
-      (ignore (SQLite3.exec-prepared &stmt &[(to-sqlite3 1) (to-sqlite3 @\"a\")]))
-      (SQLite3.finalize-stmt stmt))
-  (Result.Error e) (IO.errorln &e))
-```")
+when done.")
   (defn prepare [db sql]
     (let [stmt (stmt-init)
           res (prepare- db (cstr sql) &stmt)]
@@ -280,18 +270,8 @@ or DELETE.")
       (Result.Success _) (Result.Success ())
       (Result.Error e) (Result.Error e)))
 
-  (doc with-transaction "executes `body` inside a transaction. If `body`
-evaluates to a `Result.Error`, the transaction is rolled back; otherwise it is
-committed. Returns the result of `body`, or the error from `begin`/`commit`
-if those fail.
-
-Example:
-```
-(SQLite3.with-transaction &db
-  (do
-    (ignore (SQLite3.query &db \"INSERT INTO t VALUES (1);\" &[]))
-    (SQLite3.query &db \"SELECT * FROM t;\" &[])))
-```")
+  (doc with-transaction "executes `body` inside a transaction. Rolls back on
+`Result.Error`, commits on success.")
   (defmacro with-transaction [db body]
     (list 'let
           (array '__wtx_begin (list 'SQLite3.begin db))
