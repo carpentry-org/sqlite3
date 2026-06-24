@@ -6,7 +6,7 @@ everything, but it tries to be useful.
 ## Installation
 
 ```clojure
-(load "git@git.veitheller.de:carpentry/sqlite3.git@0.0.7")
+(load "git@git.veitheller.de:carpentry/sqlite3.git@0.1.0")
 ```
 
 ## Usage
@@ -15,7 +15,7 @@ The module `SQLite3` provides facilities for opening, closing, and querying
 databases.
 
 ```clojure
-(load "git@git.veitheller.de:carpentry/sqlite3.git@0.0.7")
+(load "git@git.veitheller.de:carpentry/sqlite3.git@0.1.0")
 
 ; opening DBs can fail, for the purposes of this example we
 ; ignore that

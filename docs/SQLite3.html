@@ -55,12 +55,12 @@
                     <p>is a simple high-level wrapper around SQLite3. It doesn’t intend
 to wrap everything, but it tries to be useful.</p>
 <h2>Installation</h2>
-<pre><code class="language-clojure">(load &quot;git@veitheller.de:git/carpentry/sqlite3.git@0.0.7&quot;)
+<pre><code class="language-clojure">(load &quot;git@veitheller.de:git/carpentry/sqlite3.git@0.1.0&quot;)
 </code></pre>
 <h2>Usage</h2>
 <p>The module <code>SQLite3</code> provides facilities for opening, closing, and querying
 databases.</p>
-<pre><code class="language-clojure">(load &quot;git@veitheller.de:git/carpentry/sqlite3.git@0.0.7&quot;)
+<pre><code class="language-clojure">(load &quot;git@veitheller.de:git/carpentry/sqlite3.git@0.1.0&quot;)
 
 ; opening DBs can fail, for the purposes of this example we
 ; ignore that
@@ -134,6 +134,47 @@ primitive Carp types can be casted to appropriate SQLite types by using the
                     </p>
                 </div>
                 <div class="binder">
+                    <a class="anchor" href="#begin">
+                        <h3 id="begin">
+                            begin
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref SQLite a)] (Result () String))
+                    </p>
+                    <pre class="args">
+                        (begin db)
+                    </pre>
+                    <p class="doc">
+                        <p>begins a transaction.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#changes">
+                        <h3 id="changes">
+                            changes
+                        </h3>
+                    </a>
+                    <div class="description">
+                        external
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref SQLite a)] Int)
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>returns the number of rows modified by the last INSERT, UPDATE,
+or DELETE.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
                     <a class="anchor" href="#close">
                         <h3 id="close">
                             close
@@ -150,6 +191,46 @@ primitive Carp types can be casted to appropriate SQLite types by using the
                     </span>
                     <p class="doc">
                         <p>closes a database.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#commit">
+                        <h3 id="commit">
+                            commit
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref SQLite a)] (Result () String))
+                    </p>
+                    <pre class="args">
+                        (commit db)
+                    </pre>
+                    <p class="doc">
+                        <p>commits the current transaction.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#last-insert-rowid">
+                        <h3 id="last-insert-rowid">
+                            last-insert-rowid
+                        </h3>
+                    </a>
+                    <div class="description">
+                        external
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref SQLite a)] Long)
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>returns the row ID of the last successful INSERT.</p>
 
                     </p>
                 </div>
@@ -193,6 +274,55 @@ primitive Carp types can be casted to appropriate SQLite types by using the
                         <p>queries the database <code>db</code> using the query <code>s</code> and the parameters
 <code>p</code>.</p>
 <p>If it fails, we return an error message using <code>Result.Error</code>.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#rollback">
+                        <h3 id="rollback">
+                            rollback
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref SQLite a)] (Result () String))
+                    </p>
+                    <pre class="args">
+                        (rollback db)
+                    </pre>
+                    <p class="doc">
+                        <p>rolls back the current transaction.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#with-transaction">
+                        <h3 id="with-transaction">
+                            with-transaction
+                        </h3>
+                    </a>
+                    <div class="description">
+                        macro
+                    </div>
+                    <p class="sig">
+                        Macro
+                    </p>
+                    <pre class="args">
+                        (with-transaction db body)
+                    </pre>
+                    <p class="doc">
+                        <p>executes <code>body</code> inside a transaction. If <code>body</code>
+evaluates to a <code>Result.Error</code>, the transaction is rolled back; otherwise it is
+committed. Returns the result of <code>body</code>, or the error from <code>begin</code>/<code>commit</code>
+if those fail.</p>
+<p>Example:</p>
+<pre><code>(SQLite3.with-transaction &amp;db
+  (do
+    (ignore (SQLite3.query &amp;db &quot;INSERT INTO t VALUES (1);&quot; &amp;[]))
+    (SQLite3.query &amp;db &quot;SELECT * FROM t;&quot; &amp;[])))
+</code></pre>
 
                     </p>
                 </div>
