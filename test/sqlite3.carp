@@ -305,10 +305,6 @@
         r))
     "blob with embedded nulls round-trips correctly")
 
-  ; =========================================================================
-  ; Prepared statements - prepare / exec-prepared / finalize-stmt
-  ; =========================================================================
-
   (assert-true test
     (let [db (open-memory)]
       (let-do [r (SQLite3.prepare &db "SELECT 1;")]

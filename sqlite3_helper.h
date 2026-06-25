@@ -1,7 +1,5 @@
 #include "sqlite3.h"
 
-// --- BEGIN HELPERS ---
-
 typedef struct {
   sqlite3* handle;
 } SQLite;
@@ -144,8 +142,6 @@ bool SQLiteRes_is_ok(SQLiteRes* r) {
 char* SQLiteRes_error(SQLiteRes r) {
   return (char*)r.err;
 }
-
-// --- END HELPERS ---
 
 SQLite SQLite3_init() {
   SQLite res;
@@ -319,8 +315,6 @@ char* SQLite3_error_and_close(SQLite db) {
   sqlite3_close_v2(db.handle);
   return copy;
 }
-
-// --- Prepared statement API ---
 
 typedef struct {
   sqlite3_stmt* handle;
