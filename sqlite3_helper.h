@@ -1,7 +1,5 @@
 #include "sqlite3.h"
 
-// --- BEGIN HELPERS ---
-
 typedef struct {
   sqlite3* handle;
 } SQLite;
@@ -144,8 +142,6 @@ bool SQLiteRes_is_ok(SQLiteRes* r) {
 char* SQLiteRes_error(SQLiteRes r) {
   return (char*)r.err;
 }
-
-// --- END HELPERS ---
 
 SQLite SQLite3_init() {
   SQLite res;
@@ -318,4 +314,58 @@ char* SQLite3_error_and_close(SQLite db) {
   memcpy(copy, msg, len + 1);
   sqlite3_close_v2(db.handle);
   return copy;
+}
+
+typedef struct {
+  sqlite3_stmt* handle;
+} Stmt;
+
+Stmt SQLite3_stmt_init() {
+  Stmt res;
+  res.handle = NULL;
+  return res;
+}
+
+int SQLite3_prepare_c(SQLite* db, const char* sql, Stmt* stmt) {
+  return sqlite3_prepare_v2(db->handle, sql, -1, &stmt->handle, NULL);
+}
+
+char* SQLite3_errmsg_c(SQLite* db) {
+  const char* msg = sqlite3_errmsg(db->handle);
+  size_t len = strlen(msg);
+  char* copy = CARP_MALLOC(len + 1);
+  memcpy(copy, msg, len + 1);
+  return copy;
+}
+
+SQLiteRes SQLite3_exec_prepared_c(Stmt* stmt, Array* p) {
+  SQLiteRes res;
+  res.is = OK;
+  res.rows = SQLiteRows_new_rows();
+
+  const char* err = SQLite3_bind(stmt->handle, p);
+  if (err) goto fail;
+
+  err = SQLite3_exec_internal(stmt->handle, &res.rows);
+  if (err) goto fail;
+
+  sqlite3_reset(stmt->handle);
+  sqlite3_clear_bindings(stmt->handle);
+  return res;
+
+fail:
+  sqlite3_reset(stmt->handle);
+  sqlite3_clear_bindings(stmt->handle);
+  res.is = ERR;
+  res.err = err;
+  return res;
+}
+
+void SQLite3_reset_stmt_c(Stmt* stmt) {
+  sqlite3_reset(stmt->handle);
+  sqlite3_clear_bindings(stmt->handle);
+}
+
+void SQLite3_finalize_stmt_c(Stmt stmt) {
+  if (stmt.handle) sqlite3_finalize(stmt.handle);
 }

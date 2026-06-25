@@ -198,6 +198,53 @@ If it fails, we return an error message using `Result.Error`.")
   (doc close "closes a database.")
   (register close (Fn [SQLite] ()) "SQLite3_close_c")
 
+  (doc Stmt "is an opaque prepared statement type. Prepare once with
+[prepare](#prepare), execute with [exec-prepared](#exec-prepared), and
+release with [finalize-stmt](#finalize-stmt).")
+  (register-type Stmt)
+
+  (private stmt-init)
+  (hidden stmt-init)
+  (register stmt-init (Fn [] Stmt) "SQLite3_stmt_init")
+  (private errmsg)
+  (hidden errmsg)
+  (register errmsg (Fn [&SQLite] String) "SQLite3_errmsg_c")
+  (private exec-prepared-)
+  (hidden exec-prepared-)
+  (register exec-prepared-
+    (Fn [&Stmt &(Array SQLiteColumn)] SQLiteRes)
+    "SQLite3_exec_prepared_c")
+  (private prepare-)
+  (hidden prepare-)
+  (register prepare- (Fn [&SQLite (Ptr CChar) &Stmt] Int) "SQLite3_prepare_c")
+
+  (doc prepare "prepares a SQL statement for repeated execution via
+[exec-prepared](#exec-prepared). Release with [finalize-stmt](#finalize-stmt)
+when done.")
+  (defn prepare [db sql]
+    (let [stmt (stmt-init)
+          res (prepare- db (cstr sql) &stmt)]
+      (if (= res sql_ok) (Result.Success stmt) (Result.Error (errmsg db)))))
+
+  (doc exec-prepared "executes a prepared statement with the given parameters.
+Automatically resets the statement afterward for reuse.")
+  (defn exec-prepared [stmt p]
+    (let [r (exec-prepared- stmt
+                            &(Array.copy-map &(fn [x]
+                                               (Type.to-sqlite3-internal @x))
+                                             p))]
+      (if (SQLiteRes.ok? &r)
+        (Result.Success (SQLiteRes.to-array r))
+        (Result.Error (from-cstr (SQLiteRes.error r))))))
+
+  (doc reset-stmt "manually resets a prepared statement and clears its bindings.
+Called automatically by [exec-prepared](#exec-prepared).")
+  (register reset-stmt (Fn [&Stmt] ()) "SQLite3_reset_stmt_c")
+
+  (doc finalize-stmt "releases a prepared statement’s resources. Must not be
+used afterward.")
+  (register finalize-stmt (Fn [Stmt] ()) "SQLite3_finalize_stmt_c")
+
   (doc last-insert-rowid "returns the row ID of the last successful INSERT.")
   (register last-insert-rowid (Fn [&SQLite] Long) "SQLite3_last_insert_rowid")
 
@@ -223,18 +270,8 @@ or DELETE.")
       (Result.Success _) (Result.Success ())
       (Result.Error e) (Result.Error e)))
 
-  (doc with-transaction "executes `body` inside a transaction. If `body`
-evaluates to a `Result.Error`, the transaction is rolled back; otherwise it is
-committed. Returns the result of `body`, or the error from `begin`/`commit`
-if those fail.
-
-Example:
-```
-(SQLite3.with-transaction &db
-  (do
-    (ignore (SQLite3.query &db \"INSERT INTO t VALUES (1);\" &[]))
-    (SQLite3.query &db \"SELECT * FROM t;\" &[])))
-```")
+  (doc with-transaction "executes `body` inside a transaction. Rolls back on
+`Result.Error`, commits on success.")
   (defmacro with-transaction [db body]
     (list 'let
           (array '__wtx_begin (list 'SQLite3.begin db))
