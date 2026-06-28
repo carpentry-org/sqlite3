@@ -73,6 +73,25 @@ Array SQLiteColumn_from_blob(SQLiteColumn col) {
   return res;
 }
 
+/* delete/copy implement the Carp interfaces of the same name, so they carry the
+ * mangled path of the Carp binding (SQLite3.SQLiteColumn.delete) rather than the
+ * SQLiteColumn_* convention used by the directly-called bindings above. */
+void SQLite3_SQLiteColumn_delete(SQLiteColumn col) {
+  if ((col.tag == SQLITE_TEXT || col.tag == SQLITE_BLOB) && col.s) {
+    CARP_FREE(col.s);
+  }
+}
+
+SQLiteColumn SQLite3_SQLiteColumn_copy(SQLiteColumn* col) {
+  SQLiteColumn res = *col;
+  if (col->s && (col->tag == SQLITE_TEXT || col->tag == SQLITE_BLOB)) {
+    int len = col->tag == SQLITE_TEXT ? (int)strlen(col->s) + 1 : col->blob_len;
+    res.s = CARP_MALLOC(len);
+    memcpy(res.s, col->s, len);
+  }
+  return res;
+}
+
 typedef struct {
   int columns;
   SQLiteColumn* data;
@@ -117,6 +136,30 @@ SQLiteRows SQLiteRows_new_rows() {
   return res;
 }
 
+/* Frees only the container arrays: the per-row column array and the row array
+ * itself. The per-column text/blob buffers are left alone — when a result is
+ * handed back to Carp those buffers are moved into Carp values. The row array
+ * is grown with realloc, so it is released with the matching free. */
+static void SQLiteRows_free_containers(SQLiteRows* rows) {
+  for (int i = 0; i < rows->len; i++) CARP_FREE(rows->rows[i].data);
+  free(rows->rows);
+}
+
+/* Frees a result set that never reaches Carp (the error paths): the column
+ * buffers as well as the containers. */
+static void SQLiteRows_free_all(SQLiteRows* rows) {
+  for (int i = 0; i < rows->len; i++) {
+    SQLiteRow* row = rows->rows + i;
+    for (int j = 0; j < row->columns; j++) {
+      int tag = row->data[j].tag;
+      if ((tag == SQLITE_TEXT || tag == SQLITE_BLOB) && row->data[j].s) {
+        CARP_FREE(row->data[j].s);
+      }
+    }
+  }
+  SQLiteRows_free_containers(rows);
+}
+
 typedef struct {
   int is;
   union {
@@ -141,6 +184,24 @@ bool SQLiteRes_is_ok(SQLiteRes* r) {
 
 char* SQLiteRes_error(SQLiteRes r) {
   return (char*)r.err;
+}
+
+/* Called by Carp once a successful result has been turned into Carp values by
+ * to-array; the column buffers are owned by Carp at that point, so only the
+ * container arrays are freed here. */
+void SQLite3_SQLiteRes_delete(SQLiteRes r) {
+  if (r.is == OK) SQLiteRows_free_containers(&r.rows);
+}
+
+/* sqlite3_errmsg returns memory owned by SQLite that is invalidated by the next
+ * call into the library (finalize, reset, …). Copy it into a Carp-owned string
+ * so it stays valid after we tear the statement down. */
+static char* SQLite3_copy_errmsg(const char* msg) {
+  if (!msg) msg = "";
+  size_t len = strlen(msg);
+  char* copy = CARP_MALLOC(len + 1);
+  memcpy(copy, msg, len + 1);
+  return copy;
 }
 
 SQLite SQLite3_init() {
@@ -288,10 +349,11 @@ SQLiteRes SQLite3_exec_c(SQLite* db, const char* stmt, Array* p) {
 
   return res;
 err:
+  SQLiteRows_free_all(&res.rows);
+  res.is = ERR;
+  res.err = SQLite3_copy_errmsg(err);
   if (s) sqlite3_finalize(s);
   if (n) sqlite3_finalize(n);
-  res.is = ERR;
-  res.err = err;
   return res;
 }
 
@@ -308,10 +370,7 @@ int SQLite3_changes(SQLite* db) {
 }
 
 char* SQLite3_error_and_close(SQLite db) {
-  const char* msg = sqlite3_errmsg(db.handle);
-  size_t len = strlen(msg);
-  char* copy = CARP_MALLOC(len + 1);
-  memcpy(copy, msg, len + 1);
+  char* copy = SQLite3_copy_errmsg(sqlite3_errmsg(db.handle));
   sqlite3_close_v2(db.handle);
   return copy;
 }
@@ -331,11 +390,7 @@ int SQLite3_prepare_c(SQLite* db, const char* sql, Stmt* stmt) {
 }
 
 char* SQLite3_errmsg_c(SQLite* db) {
-  const char* msg = sqlite3_errmsg(db->handle);
-  size_t len = strlen(msg);
-  char* copy = CARP_MALLOC(len + 1);
-  memcpy(copy, msg, len + 1);
-  return copy;
+  return SQLite3_copy_errmsg(sqlite3_errmsg(db->handle));
 }
 
 SQLiteRes SQLite3_exec_prepared_c(Stmt* stmt, Array* p) {
@@ -354,10 +409,11 @@ SQLiteRes SQLite3_exec_prepared_c(Stmt* stmt, Array* p) {
   return res;
 
 fail:
+  SQLiteRows_free_all(&res.rows);
+  res.is = ERR;
+  res.err = SQLite3_copy_errmsg(err);
   sqlite3_reset(stmt->handle);
   sqlite3_clear_bindings(stmt->handle);
-  res.is = ERR;
-  res.err = err;
   return res;
 }
 
