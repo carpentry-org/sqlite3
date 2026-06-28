@@ -118,6 +118,11 @@ primitive Carp types can be casted to appropriate SQLite types by using the
       (Fn [SQLiteColumn] (Array Byte))
       "SQLiteColumn_from_blob")
 
+    (register delete (Fn [SQLiteColumn] ()))
+    (implements delete SQLite3.SQLiteColumn.delete)
+    (register copy (Fn [&SQLiteColumn] SQLiteColumn))
+    (implements copy SQLite3.SQLiteColumn.copy)
+
     (defn to-carp [c]
       (case (tag &c)
             sql_int
@@ -151,7 +156,9 @@ primitive Carp types can be casted to appropriate SQLite types by using the
     (register ok? (Fn [&SQLiteRes] Bool) "SQLiteRes_is_ok")
     (register length (Fn [&SQLiteRes] Int) "SQLiteRes_length")
     (register nth (Fn [&SQLiteRes Int] SQLiteRow) "SQLiteRes_nth")
-    (register error (Fn [SQLiteRes] (Ptr CChar)) "SQLiteRes_error")
+    (register error (Fn [SQLiteRes] String) "SQLiteRes_error")
+    (register delete (Fn [SQLiteRes] ()))
+    (implements delete SQLite3.SQLiteRes.delete)
 
     (defn to-array [r]
       (let-do [l (length &r)
@@ -193,7 +200,7 @@ If it fails, we return an error message using `Result.Error`.")
                    &(Array.copy-map &(fn [x] (Type.to-sqlite3-internal @x)) p))]
       (if (SQLiteRes.ok? &r)
         (Result.Success (SQLiteRes.to-array r))
-        (Result.Error (from-cstr (SQLiteRes.error r))))))
+        (Result.Error (SQLiteRes.error r)))))
 
   (doc close "closes a database.")
   (register close (Fn [SQLite] ()) "SQLite3_close_c")
@@ -235,7 +242,7 @@ Automatically resets the statement afterward for reuse.")
                                              p))]
       (if (SQLiteRes.ok? &r)
         (Result.Success (SQLiteRes.to-array r))
-        (Result.Error (from-cstr (SQLiteRes.error r))))))
+        (Result.Error (SQLiteRes.error r)))))
 
   (doc reset-stmt "manually resets a prepared statement and clears its bindings.
 Called automatically by [exec-prepared](#exec-prepared).")

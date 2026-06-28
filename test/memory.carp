@@ -1,0 +1,60 @@
+(load "../sqlite3.carp")
+(load "Test.carp")
+(use Test)
+(use SQLite3)
+
+; Exercises the text/blob parameter path, the result path, and the error paths
+; that historically leaked or read freed memory. Run with --log-memory so the
+; allocation counter is live.
+(defn workload []
+  (match (open ":memory:")
+    (Result.Error _) ()
+    (Result.Success db)
+      (do
+        (ignore (query &db "CREATE TABLE t (i INT, s TEXT, b BLOB);" &[]))
+        (for [i 0 20]
+          (ignore
+            (query &db
+                   "INSERT INTO t VALUES (?1, ?2, ?3);"
+                   &[(to-sqlite3 i)
+                     (to-sqlite3 @"a text parameter")
+                     (SQLite3.Type.Blob [1b 2b 0b 3b 4b])])))
+        (ignore (query &db "SELECT * FROM t;" &[]))
+        (ignore (query &db "NOT VALID SQL" &[]))
+        (match (prepare &db "INSERT INTO t VALUES (?1, ?2, ?3);")
+          (Result.Success stmt)
+            (do
+              (for [i 0 20]
+                (ignore
+                  (exec-prepared &stmt
+                                 &[(to-sqlite3 i)
+                                   (to-sqlite3 @"prepared text")
+                                   (SQLite3.Type.Blob [9b 8b 7b])])))
+              (finalize-stmt stmt))
+          (Result.Error _) ())
+        (match (prepare &db "SELECT * FROM t WHERE i = ?1;")
+          (Result.Success stmt)
+            (do
+              (ignore (exec-prepared &stmt &[(to-sqlite3 3)]))
+              (finalize-stmt stmt))
+          (Result.Error _) ())
+        (ignore (query &db "CREATE TABLE u (x INT UNIQUE);" &[]))
+        (ignore (query &db "INSERT INTO u VALUES (1);" &[]))
+        (match (prepare &db "INSERT INTO u VALUES (?1);")
+          (Result.Success stmt)
+            (do
+              (ignore (exec-prepared &stmt &[(to-sqlite3 1)]))
+              (finalize-stmt stmt))
+          (Result.Error _) ())
+        (close db))))
+
+(deftest test
+  (do
+    ; warm up so one-time allocations are settled before we sample the counter
+    (workload)
+    (let-do [before (Debug.memory-balance)]
+      (for [i 0 50] (workload))
+      (assert-equal test
+        0l
+        (- (Debug.memory-balance) before)
+        "no net allocations leak across 50 query/prepared workloads"))))

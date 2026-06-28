@@ -30,6 +30,12 @@
     "invalid SQL returns error")
 
   (assert-equal test
+    &(Result.Error @"near \"NOT\": syntax error")
+    &(let [db (open-memory)]
+      (let-do [r (SQLite3.query &db "NOT VALID SQL" &[])] (SQLite3.close db) r))
+    "error message survives statement teardown")
+
+  (assert-equal test
     &(Result.Success
       [[(SQLite3.Type.Integer 42l)
         (SQLite3.Type.Text @"hello")
@@ -332,6 +338,20 @@
             r)
         (Result.Error e) (do (SQLite3.close db) (Result.Error e))))
     "exec-prepared returns results")
+
+  (assert-equal test
+    &(Result.Error @"UNIQUE constraint failed: t.x")
+    &(let-do [db (open-memory)]
+      (ignore (SQLite3.query &db "CREATE TABLE t (x INT UNIQUE);" &[]))
+      (ignore (SQLite3.query &db "INSERT INTO t VALUES (1);" &[]))
+      (match (SQLite3.prepare &db "INSERT INTO t VALUES (?1);")
+        (Result.Success stmt)
+          (let-do [r (SQLite3.exec-prepared &stmt &[(to-sqlite3 1)])]
+            (SQLite3.finalize-stmt stmt)
+            (SQLite3.close db)
+            r)
+        (Result.Error e) (do (SQLite3.close db) (Result.Error e))))
+    "exec-prepared error message survives statement reset")
 
   (assert-equal test
     &(Result.Success
