@@ -41,6 +41,7 @@ to wrap each value in `to-sqlite3` by hand.
 
 ```clojure
 (let-do [db (Result.unsafe-from-success (SQLite3.open "db"))]
+  (ignore (SQLite3.query &db "CREATE TABLE mytable (i INT, s TEXT);" &[]))
   (ignore
     (SQLite3.with-prepared [stmt &db "INSERT INTO mytable VALUES (?1, ?2);"]
       (do
@@ -52,7 +53,9 @@ to wrap each value in `to-sqlite3` by hand.
 
 The body must evaluate to a `Result` (like [`with-transaction`](#usage)):
 `with-prepared` returns the prepare error if the statement can't be prepared,
-otherwise the `Result` the body produced.
+otherwise the `Result` the body produced. A failed prepare and an error the
+body returns both surface as `Result.Error String`, so the caller can't tell
+them apart by type — the same tradeoff as `with-transaction`.
 
 For more information, check out [the
 documentation](https://veitheller.de/sqlite3)!

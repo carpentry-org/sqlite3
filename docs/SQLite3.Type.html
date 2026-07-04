@@ -299,6 +299,28 @@ primitive Carp types can be casted to appropriate SQLite types by using the
                     </p>
                 </div>
                 <div class="binder">
+                    <a class="anchor" href="#to-sqlite3">
+                        <h3 id="to-sqlite3">
+                            to-sqlite3
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [SQLite3.Type] SQLite3.Type)
+                    </p>
+                    <pre class="args">
+                        (to-sqlite3 t)
+                    </pre>
+                    <p class="doc">
+                        <p>is the identity on values that are already a
+<code>SQLite3.Type</code>, so pre-built <code>Null</code> and <code>Blob</code> values flow through
+<a href="#params">params</a> next to primitives.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
                     <a class="anchor" href="#to-sqlite3-internal">
                         <h3 id="to-sqlite3-internal">
                             to-sqlite3-internal

@@ -312,7 +312,9 @@ exit path — including when `body` short-circuits.
 
 Like the body of [with-transaction](#with-transaction), `body` must evaluate to
 a `Result`. The whole form returns the prepare error if the statement can’t be
-prepared, otherwise the `Result` that `body` produced.
+prepared, otherwise the `Result` that `body` produced. A failed prepare and an
+error the body returns are both `Result.Error String`, so a caller can’t tell
+them apart by type.
 
 ```
 (SQLite3.with-prepared [stmt &db \"INSERT INTO t VALUES (?1, ?2)\"]
