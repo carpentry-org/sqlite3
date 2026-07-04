@@ -434,4 +434,78 @@
             (SQLite3.finalize-stmt stmt)
             (let-do [r (SQLite3.last-insert-rowid &db)] (SQLite3.close db) r))
         (Result.Error _) (do (SQLite3.close db) 0l)))
-    "last-insert-rowid works with prepared inserts"))
+    "last-insert-rowid works with prepared inserts")
+
+  (assert-equal test
+    &(Result.Success [[(SQLite3.Type.Integer 7l) (SQLite3.Type.Text @"carp")]])
+    &(let [db (open-memory)]
+      (let-do [r (do
+                 (ignore
+                   (SQLite3.query &db "CREATE TABLE t (i INT, s TEXT);" &[]))
+                 (ignore
+                   (SQLite3.query &db
+                                  "INSERT INTO t VALUES (?1, ?2);"
+                                  (SQLite3.params 7 @"carp")))
+                 (SQLite3.query &db "SELECT * FROM t;" &[]))]
+        (SQLite3.close db)
+        r))
+    "params builds a working parameter array for query")
+
+  (assert-equal test
+    &(Result.Success [[(SQLite3.Type.Integer 3l)]])
+    &(let [db (open-memory)]
+      (let-do [r (do
+                 (ignore (SQLite3.query &db "CREATE TABLE t (i INT);" &[]))
+                 (ignore
+                   (SQLite3.with-prepared [stmt &db "INSERT INTO t VALUES (?1);"]
+                                          (do
+                                            (ignore
+                                              (SQLite3.exec-prepared &stmt
+                                                                     (SQLite3.params 1)))
+                                            (ignore
+                                              (SQLite3.exec-prepared &stmt
+                                                                     (SQLite3.params 2)))
+                                            (ignore
+                                              (SQLite3.exec-prepared &stmt
+                                                                     (SQLite3.params 3)))
+                                            (Result.Success ()))))
+                 (SQLite3.query &db "SELECT COUNT(*) FROM t;" &[]))]
+        (SQLite3.close db)
+        r))
+    "with-prepared runs a reusable insert and finalizes")
+
+  (assert-true test
+    (let [db (open-memory)]
+      (let-do [r (SQLite3.with-prepared [stmt &db "NOT VALID SQL"]
+                                        (Result.Success ()))]
+        (SQLite3.close db)
+        (Result.error? &r)))
+    "with-prepared surfaces the prepare error for invalid SQL")
+
+  (assert-equal test
+    &(Result.Success [[(SQLite3.Type.Integer 2l)]])
+    &(let [db (open-memory)]
+      (let-do [r (do
+                 (ignore (SQLite3.query &db "CREATE TABLE t (i INT);" &[]))
+                 (ignore (SQLite3.query &db "INSERT INTO t VALUES (2);" &[]))
+                 (SQLite3.with-prepared
+                   [stmt &db "SELECT * FROM t WHERE i = ?1;"]
+                   (SQLite3.exec-prepared &stmt (SQLite3.params 2))))]
+        (SQLite3.close db)
+        r))
+    "with-prepared returns the body Result without extra nesting")
+
+  (assert-equal test
+    &(Result.Success [[(SQLite3.Type.Null) (SQLite3.Type.Blob [1b 2b])]])
+    &(let [db (open-memory)]
+      (let-do [r (do
+                 (ignore (SQLite3.query &db "CREATE TABLE t (a, b);" &[]))
+                 (ignore
+                   (SQLite3.query &db
+                                  "INSERT INTO t VALUES (?1, ?2);"
+                                  (SQLite3.params (SQLite3.Type.Null)
+                                                  (SQLite3.Type.Blob [1b 2b]))))
+                 (SQLite3.query &db "SELECT * FROM t;" &[]))]
+        (SQLite3.close db)
+        r))
+    "params passes pre-built Type values (Null, Blob) through unchanged"))

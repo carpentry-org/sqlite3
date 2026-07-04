@@ -304,7 +304,48 @@ or DELETE.")
                                               (list 'SQLite3.rollback db))
                                         (list 'Result.Error '__wtx_cerr))
                                   (list 'Result.Success '_)
-                                  (list 'Result.Success '__wtx_val))))))))
+                                  (list 'Result.Success '__wtx_val)))))))
+
+  (doc with-prepared "prepares `sql` on the database `db`, binds the resulting
+statement to `stmt`, evaluates `body`, and finalizes the statement on every
+exit path — including when `body` short-circuits.
+
+Like the body of [with-transaction](#with-transaction), `body` must evaluate to
+a `Result`. The whole form returns the prepare error if the statement can’t be
+prepared, otherwise the `Result` that `body` produced.
+
+```
+(SQLite3.with-prepared [stmt &db \"INSERT INTO t VALUES (?1, ?2)\"]
+  (do
+    (for [i 0 100]
+      (ignore (SQLite3.exec-prepared &stmt (SQLite3.params i @\"row\"))))
+    (Result.Success ())))
+```")
+  (defmacro with-prepared [binding body]
+    (let [stmt (car binding)
+          db (cadr binding)
+          sql (car (cddr binding))]
+      (list 'match
+            (list 'SQLite3.prepare db sql)
+            (list 'Result.Error '__wp_err)
+            (list 'Result.Error '__wp_err)
+            (list 'Result.Success stmt)
+            (list 'let-do
+                  (array '__wp_res body)
+                  (list 'SQLite3.finalize-stmt stmt)
+                  '__wp_res))))
+
+  (doc params "wraps each argument in `to-sqlite3` and returns a reference to
+the resulting parameter array, ready to hand to [query](#query) or
+[exec-prepared](#exec-prepared).
+
+`(SQLite3.params id @\"name\")` expands to
+`&[(to-sqlite3 id) (to-sqlite3 @\"name\")]`, removing the per-argument
+`to-sqlite3` ceremony. Values that are already a `SQLite3.Type` — such as
+`(SQLite3.Type.Null)` or a `Blob` — pass straight through, so they can be mixed
+in with primitives.")
+  (defmacro params [:rest args]
+    (list 'ref (collect-into (map (fn [a] (list 'to-sqlite3 a)) args) array))))
 
 (definterface to-sqlite3 (Fn [a] SQLite3.Type))
 
@@ -331,3 +372,12 @@ or DELETE.")
 (defmodule String
   (defn to-sqlite3 [s] (SQLite3.Type.Text s))
   (implements to-sqlite3 String.to-sqlite3))
+
+(defmodule SQLite3
+  (defmodule Type
+    (doc to-sqlite3 "is the identity on values that are already a
+`SQLite3.Type`, so pre-built `Null` and `Blob` values flow through
+[params](#params) next to primitives.")
+    (sig to-sqlite3 (Fn [SQLite3.Type] SQLite3.Type))
+    (defn to-sqlite3 [t] t)
+    (implements to-sqlite3 SQLite3.Type.to-sqlite3)))

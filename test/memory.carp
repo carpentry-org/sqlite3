@@ -46,6 +46,23 @@
               (ignore (exec-prepared &stmt &[(to-sqlite3 1)]))
               (finalize-stmt stmt))
           (Result.Error _) ())
+        ; with-prepared must finalize on the success path...
+        (ignore
+          (with-prepared
+            [stmt &db "INSERT INTO t VALUES (?1, ?2, ?3);"]
+            (do
+              (for [i 0 20]
+                (ignore
+                  (exec-prepared &stmt
+                                 (params i
+                                         @"with-prepared text"
+                                         (SQLite3.Type.Blob [5b 6b 0b 7b])))))
+              (Result.Success ()))))
+        ; ...and when the body short-circuits with an error.
+        (ignore
+          (with-prepared
+            [stmt &db "INSERT INTO t VALUES (?1, ?2, ?3);"]
+            (the (Result () String) (Result.Error @"body short-circuited"))))
         (close db))))
 
 (deftest test
