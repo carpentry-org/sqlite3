@@ -55,12 +55,12 @@
                     <p>is a simple high-level wrapper around SQLite3. It doesn’t intend
 to wrap everything, but it tries to be useful.</p>
 <h2>Installation</h2>
-<pre><code class="language-clojure">(load &quot;git@veitheller.de:git/carpentry/sqlite3.git@0.1.0&quot;)
+<pre><code class="language-clojure">(load &quot;git@veitheller.de:git/carpentry/sqlite3.git@0.2.0&quot;)
 </code></pre>
 <h2>Usage</h2>
 <p>The module <code>SQLite3</code> provides facilities for opening, closing, and querying
 databases.</p>
-<pre><code class="language-clojure">(load &quot;git@veitheller.de:git/carpentry/sqlite3.git@0.1.0&quot;)
+<pre><code class="language-clojure">(load &quot;git@veitheller.de:git/carpentry/sqlite3.git@0.2.0&quot;)
 
 ; opening DBs can fail, for the purposes of this example we
 ; ignore that
@@ -105,6 +105,28 @@ combinators!</p>
                         <p>is the opaque database type. You’ll need one of those to query
 anything.</p>
 <p>It can be obtained by using <a href="#open">open</a>.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#Stmt">
+                        <h3 id="Stmt">
+                            Stmt
+                        </h3>
+                    </a>
+                    <div class="description">
+                        meta-stub
+                    </div>
+                    <p class="sig">
+                        a
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>is an opaque prepared statement type. Prepare once with
+<a href="#prepare">prepare</a>, execute with <a href="#exec-prepared">exec-prepared</a>, and
+release with <a href="#finalize-stmt">finalize-stmt</a>.</p>
 
                     </p>
                 </div>
@@ -215,6 +237,48 @@ or DELETE.</p>
                     </p>
                 </div>
                 <div class="binder">
+                    <a class="anchor" href="#exec-prepared">
+                        <h3 id="exec-prepared">
+                            exec-prepared
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref Stmt a), (Ref (Array SQLite3.Type) b)] (Result (Array (Array SQLite3.Type)) String))
+                    </p>
+                    <pre class="args">
+                        (exec-prepared stmt p)
+                    </pre>
+                    <p class="doc">
+                        <p>executes a prepared statement with the given parameters.
+Automatically resets the statement afterward for reuse.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#finalize-stmt">
+                        <h3 id="finalize-stmt">
+                            finalize-stmt
+                        </h3>
+                    </a>
+                    <div class="description">
+                        external
+                    </div>
+                    <p class="sig">
+                        (Fn [Stmt] ())
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>releases a prepared statement’s resources. Must not be
+used afterward.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
                     <a class="anchor" href="#last-insert-rowid">
                         <h3 id="last-insert-rowid">
                             last-insert-rowid
@@ -256,6 +320,55 @@ or DELETE.</p>
                     </p>
                 </div>
                 <div class="binder">
+                    <a class="anchor" href="#params">
+                        <h3 id="params">
+                            params
+                        </h3>
+                    </a>
+                    <div class="description">
+                        macro
+                    </div>
+                    <p class="sig">
+                        Macro
+                    </p>
+                    <pre class="args">
+                        (params :rest args)
+                    </pre>
+                    <p class="doc">
+                        <p>wraps each argument in <code>to-sqlite3</code> and returns a reference to
+the resulting parameter array, ready to hand to <a href="#query">query</a> or
+<a href="#exec-prepared">exec-prepared</a>.</p>
+<p><code>(SQLite3.params id @&quot;name&quot;)</code> expands to
+<code>&amp;[(to-sqlite3 id) (to-sqlite3 @&quot;name&quot;)]</code>, removing the per-argument
+<code>to-sqlite3</code> ceremony. Values that are already a <code>SQLite3.Type</code> — such as
+<code>(SQLite3.Type.Null)</code> or a <code>Blob</code> — pass straight through, so they can be mixed
+in with primitives.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#prepare">
+                        <h3 id="prepare">
+                            prepare
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref SQLite a), (Ref String b)] (Result Stmt String))
+                    </p>
+                    <pre class="args">
+                        (prepare db sql)
+                    </pre>
+                    <p class="doc">
+                        <p>prepares a SQL statement for repeated execution via
+<a href="#exec-prepared">exec-prepared</a>. Release with <a href="#finalize-stmt">finalize-stmt</a>
+when done.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
                     <a class="anchor" href="#query">
                         <h3 id="query">
                             query
@@ -274,6 +387,27 @@ or DELETE.</p>
                         <p>queries the database <code>db</code> using the query <code>s</code> and the parameters
 <code>p</code>.</p>
 <p>If it fails, we return an error message using <code>Result.Error</code>.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#reset-stmt">
+                        <h3 id="reset-stmt">
+                            reset-stmt
+                        </h3>
+                    </a>
+                    <div class="description">
+                        external
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref Stmt a)] ())
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>manually resets a prepared statement and clears its bindings.
+Called automatically by <a href="#exec-prepared">exec-prepared</a>.</p>
 
                     </p>
                 </div>
@@ -298,6 +432,39 @@ or DELETE.</p>
                     </p>
                 </div>
                 <div class="binder">
+                    <a class="anchor" href="#with-prepared">
+                        <h3 id="with-prepared">
+                            with-prepared
+                        </h3>
+                    </a>
+                    <div class="description">
+                        macro
+                    </div>
+                    <p class="sig">
+                        Macro
+                    </p>
+                    <pre class="args">
+                        (with-prepared binding body)
+                    </pre>
+                    <p class="doc">
+                        <p>prepares <code>sql</code> on the database <code>db</code>, binds the resulting
+statement to <code>stmt</code>, evaluates <code>body</code>, and finalizes the statement on every
+exit path — including when <code>body</code> short-circuits.</p>
+<p>Like the body of <a href="#with-transaction">with-transaction</a>, <code>body</code> must evaluate to
+a <code>Result</code>. The whole form returns the prepare error if the statement can’t be
+prepared, otherwise the <code>Result</code> that <code>body</code> produced. A failed prepare and an
+error the body returns are both <code>Result.Error String</code>, so a caller can’t tell
+them apart by type.</p>
+<pre><code>(SQLite3.with-prepared [stmt &amp;db &quot;INSERT INTO t VALUES (?1, ?2)&quot;]
+  (do
+    (for [i 0 100]
+      (ignore (SQLite3.exec-prepared &amp;stmt (SQLite3.params i @&quot;row&quot;))))
+    (Result.Success ())))
+</code></pre>
+
+                    </p>
+                </div>
+                <div class="binder">
                     <a class="anchor" href="#with-transaction">
                         <h3 id="with-transaction">
                             with-transaction
@@ -313,16 +480,8 @@ or DELETE.</p>
                         (with-transaction db body)
                     </pre>
                     <p class="doc">
-                        <p>executes <code>body</code> inside a transaction. If <code>body</code>
-evaluates to a <code>Result.Error</code>, the transaction is rolled back; otherwise it is
-committed. Returns the result of <code>body</code>, or the error from <code>begin</code>/<code>commit</code>
-if those fail.</p>
-<p>Example:</p>
-<pre><code>(SQLite3.with-transaction &amp;db
-  (do
-    (ignore (SQLite3.query &amp;db &quot;INSERT INTO t VALUES (1);&quot; &amp;[]))
-    (SQLite3.query &amp;db &quot;SELECT * FROM t;&quot; &amp;[])))
-</code></pre>
+                        <p>executes <code>body</code> inside a transaction. Rolls back on
+<code>Result.Error</code>, commits on success.</p>
 
                     </p>
                 </div>

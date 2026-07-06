@@ -7,7 +7,7 @@ to wrap everything, but it tries to be useful.
 ## Installation
 
 ```clojure
-(load \"git@veitheller.de:git/carpentry/sqlite3.git@0.1.0\")
+(load \"git@veitheller.de:git/carpentry/sqlite3.git@0.2.0\")
 ```
 
 ## Usage
@@ -16,7 +16,7 @@ The module `SQLite3` provides facilities for opening, closing, and querying
 databases.
 
 ```clojure
-(load \"git@veitheller.de:git/carpentry/sqlite3.git@0.1.0\")
+(load \"git@veitheller.de:git/carpentry/sqlite3.git@0.2.0\")
 
 ; opening DBs can fail, for the purposes of this example we
 ; ignore that
