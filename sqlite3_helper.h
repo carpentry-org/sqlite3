@@ -272,19 +272,6 @@ const char* SQLite3_exec_internal(sqlite3_stmt* s, SQLiteRows* rows) {
   return err;
 }
 
-static const char* SQLite3_exec_ignore(sqlite3_stmt* s) {
-    int status;
-    const char* ret = NULL;
-    do { status = sqlite3_step(s); } while (status == SQLITE_ROW);
-
-    /* Check for errors */
-    if (status != SQLITE_DONE) {
-        sqlite3* db = sqlite3_db_handle(s);
-        ret = sqlite3_errmsg(db);
-    }
-    return ret;
-}
-
 const char* SQLite3_bind(sqlite3_stmt* s, Array* p) {
   int res;
   const char* err = NULL;
@@ -321,31 +308,26 @@ const char* SQLite3_bind(sqlite3_stmt* s, Array* p) {
 
 SQLiteRes SQLite3_exec_c(SQLite* db, const char* stmt, Array* p) {
   sqlite3_stmt* s = NULL;
-  sqlite3_stmt* n = NULL;
   const char* err;
   SQLiteRes res;
   res.is = OK;
   res.rows = SQLiteRows_new_rows();
 
-  do {
-    if (sqlite3_prepare_v2(db->handle, stmt, -1, &n, &stmt) != SQLITE_OK) {
+  for (;;) {
+    if (sqlite3_prepare_v2(db->handle, stmt, -1, &s, &stmt) != SQLITE_OK) {
       err = sqlite3_errmsg(db->handle);
       goto err;
-    } else {
-      if (n) {
-        err = SQLite3_bind(n, p);
-        if (err) goto err;
-      }
     }
-
-    if (s) {
-      err = n ? SQLite3_exec_ignore(s) : SQLite3_exec_internal(s, &(res.rows));
-      if (err) goto err;
-    }
-    if (s) sqlite3_finalize(s);
-    s = n;
-    n = NULL;
-  } while (s);
+    if (!s) break;
+    SQLiteRows_free_all(&res.rows);
+    res.rows = SQLiteRows_new_rows();
+    err = SQLite3_bind(s, p);
+    if (err) goto err;
+    err = SQLite3_exec_internal(s, &res.rows);
+    if (err) goto err;
+    sqlite3_finalize(s);
+    s = NULL;
+  }
 
   return res;
 err:
@@ -353,7 +335,6 @@ err:
   res.is = ERR;
   res.err = SQLite3_copy_errmsg(err);
   if (s) sqlite3_finalize(s);
-  if (n) sqlite3_finalize(n);
   return res;
 }
 
