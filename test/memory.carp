@@ -21,6 +21,8 @@
                      (SQLite3.Type.Blob [1b 2b 0b 3b 4b])])))
         (ignore (query &db "SELECT * FROM t;" &[]))
         (ignore (query &db "NOT VALID SQL" &[]))
+        (ignore (query &db "SELECT * FROM t; SELECT * FROM t;" &[]))
+        (ignore (query &db "SELECT * FROM t; NOT VALID SQL" &[]))
         (match (prepare &db "INSERT INTO t VALUES (?1, ?2, ?3);")
           (Result.Success stmt)
             (do

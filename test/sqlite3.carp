@@ -187,6 +187,53 @@
     "parameterized WHERE clause works")
 
   (assert-equal test
+    &(Result.Success [[(SQLite3.Type.Integer 1l)]])
+    &(let [db (open-memory)]
+      (let-do [r (SQLite3.query &db
+                                "CREATE TABLE t (x INT); INSERT INTO t VALUES (1); SELECT x FROM t;"
+                                &[])]
+        (SQLite3.close db)
+        r))
+    "a script can use a table it created")
+
+  (assert-equal test
+    &(Result.Success [[(SQLite3.Type.Text @"CREATE TABLE u (y INT)")]])
+    &(let-do [db (open-memory)]
+      (ignore (SQLite3.query &db "CREATE TABLE u (x INT);" &[]))
+      (let-do [r (SQLite3.query &db
+                                "DROP TABLE u; CREATE TABLE u (y INT); SELECT sql FROM sqlite_master;"
+                                &[])]
+        (SQLite3.close db)
+        r))
+    "a script can drop and recreate a table")
+
+  (assert-equal test
+    &(Result.Success [[(SQLite3.Type.Text @"ci")]])
+    &(let [db (open-memory)]
+      (let-do [r (SQLite3.query &db
+                                "CREATE TABLE c (x INT); CREATE INDEX ci ON c (x); SELECT name FROM sqlite_master WHERE type = 'index';"
+                                &[])]
+        (SQLite3.close db)
+        r))
+    "a script can index a table it created")
+
+  (assert-equal test
+    &(Result.Success [[(SQLite3.Type.Integer 2l)]])
+    &(let [db (open-memory)]
+      (let-do [r (SQLite3.query &db "SELECT 1; SELECT 2;" &[])]
+        (SQLite3.close db)
+        r))
+    "a script returns only the last statement's rows")
+
+  (assert-equal test
+    &(Result.Success [[(SQLite3.Type.Integer 1l)]])
+    &(let [db (open-memory)]
+      (let-do [r (SQLite3.query &db "SELECT 1; -- trailing comment" &[])]
+        (SQLite3.close db)
+        r))
+    "a trailing comment keeps the last statement's rows")
+
+  (assert-equal test
     "(Integer 7)"
     &(str &(SQLite3.Type.Integer 7l))
     "Type.Integer str")
